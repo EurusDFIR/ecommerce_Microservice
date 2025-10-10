@@ -88,6 +88,8 @@ Chi tiết xem trong file `TODO.md`
 
   - Lê Văn Hoàng
 
+  - Nguyễn Tuấn Việt
+
   - Ghi tiếp tên vào đây
 
 - Email: [Email của bạn]
@@ -97,4 +99,4 @@ Chi tiết xem trong file `TODO.md`
 
 MIT License
 
-<!-- Nguyễn Tuấn Việt -->
+
