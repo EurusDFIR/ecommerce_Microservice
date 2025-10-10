@@ -101,6 +101,10 @@ Chi tiết xem trong file `TODO.md`
 
   - Lê Văn Hoàng
 
+  - Nguyễn Tuấn Việt
+
+  - Diệp Đại Lê Hoài
+
   - Ghi tiếp tên vào đây
 
 - Email: [Email của bạn]
@@ -109,3 +113,5 @@ Chi tiết xem trong file `TODO.md`
 ## License
 
 MIT License
+
+
