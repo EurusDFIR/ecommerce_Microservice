@@ -85,12 +85,11 @@ Chi tiết xem trong file `TODO.md`
 ## Tác giả
 
 - Tên: [Tên của bạn]
+
   - Lê Văn Hoàng
-    .
-    .
-    .
-    .
-    .
+
+  - Ghi tiếp tên vào đây
+
 - Email: [Email của bạn]
 - GitHub: [GitHub username]
 
