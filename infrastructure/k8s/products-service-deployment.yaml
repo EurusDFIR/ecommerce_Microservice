@@ -27,8 +27,8 @@ spec:
     spec:
       containers:
         - name: products-service
-          # TODO: Thay PROJECT_ID bằng ID dự án thực tế
-          image: asia-southeast1-docker.pkg.dev/PROJECT_ID/my-ecommerce-repo/products-service:v1
+          # TODO: Thay ecommerce-micro-0037 bằng ID dự án thực tế
+          image: asia-southeast1-docker.pkg.dev/ecommerce-micro-0037/my-ecommerce-repo/products-service:v1
           ports:
             - containerPort: 8080
               name: http

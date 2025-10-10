@@ -1,8 +1,21 @@
 # E-Commerce Microservices trên Google Cloud Platform
 
+## 🎉 Dự án đã LIVE!
+
+**🌐 API URL:** http://34.143.235.74
+
+**📱 Test ngay:**
+
+```bash
+curl http://34.143.235.74/products
+curl http://34.143.235.74/categories
+```
+
 ## Mô tả dự án
 
 Đây là một hệ thống E-commerce được xây dựng theo kiến trúc Microservices trên Google Cloud Platform (GCP). Dự án này thực hiện triển khai một nền tảng thương mại điện tử với các dịch vụ độc lập, có khả năng mở rộng và bảo trì cao.
+
+**Status:** 🟢 **DEPLOYED & RUNNING** on GKE
 
 ## Kiến trúc hệ thống
 
