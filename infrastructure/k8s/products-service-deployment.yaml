@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ecommerce
+  labels:
+    name: ecommerce
+    environment: development
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: products-service-deployment
+  namespace: ecommerce
+  labels:
+    app: products-service
+    version: v1
+spec:
+  replicas: 2 # Chạy 2 bản sao để đảm bảo high availability
+  selector:
+    matchLabels:
+      app: products-service
+  template:
+    metadata:
+      labels:
+        app: products-service
+        version: v1
+    spec:
+      containers:
+        - name: products-service
+          # TODO: Thay PROJECT_ID bằng ID dự án thực tế
+          image: asia-southeast1-docker.pkg.dev/PROJECT_ID/my-ecommerce-repo/products-service:v1
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "8080"
+            - name: SERVICE_NAME
+              value: "products-service"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: products-service
+  namespace: ecommerce
+  labels:
+    app: products-service
+spec:
+  type: ClusterIP # Internal service, sẽ được expose qua Load Balancer khác
+  selector:
+    app: products-service
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: products-service-lb
+  namespace: ecommerce
+  labels:
+    app: products-service
+    service-type: load-balancer
+spec:
+  type: LoadBalancer # External Load Balancer cho testing
+  selector:
+    app: products-service
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  # Annotations cho GCP Load Balancer
+  # annotations:
+  #   cloud.google.com/load-balancer-type: "External"

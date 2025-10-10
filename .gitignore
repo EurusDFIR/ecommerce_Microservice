@@ -1,0 +1,13 @@
+BILLING_SETUP.md
+STATUS.md
+TODO.md
+#md file
+*.md
+
+#env file
+.env.example
+
+#node module
+node_modules
+
+
