@@ -253,10 +253,6 @@ gcloud artifacts docker images delete \
 
 ---
 
-## ✨ Chúc mừng!
-
-Bạn đã triển khai thành công một hệ thống E-commerce Microservices trên Google Cloud Platform!
-
 **Deployment Date:** October 10, 2025
 **Project ID:** ecommerce-micro-0037
 **Status:** 🟢 PRODUCTION READY
