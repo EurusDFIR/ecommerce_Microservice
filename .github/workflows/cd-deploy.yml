@@ -6,13 +6,15 @@ on:
     paths:
       - "services/**"
       - "infrastructure/k8s/**"
-      - ".github/workflows/cd-deploy.yml"
     paths-ignore:
       - "docs/**"
       - "*.md"
       - "README.md"
       - "postman/**"
       - ".gitignore"
+      - ".github/workflows/ci-*.yml"
+      - ".github/workflows/database-migrations.yml"
+      - ".github/workflows/hotfix-deployment.yml"
   workflow_dispatch:
     inputs:
       service:
@@ -73,16 +75,16 @@ jobs:
             exit 1
           fi
           echo "${{ secrets.GCP_SA_KEY }}" | base64 -d > ${HOME}/gcp-key.json
-          
+
           # Validate JSON
           if ! cat ${HOME}/gcp-key.json | jq empty 2>/dev/null; then
             echo "Error: Invalid JSON in GCP service account key"
             exit 1
           fi
-          
+
           export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcp-key.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcp-key.json" >> $GITHUB_ENV
-          
+
           # Activate service account
           gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
 
@@ -95,7 +97,7 @@ jobs:
         run: |
           # Re-authenticate Docker with gcloud credentials
           gcloud auth configure-docker ${{ env.ARTIFACT_REGISTRY }} --quiet
-          
+
           # Verify authentication
           gcloud auth list
 
