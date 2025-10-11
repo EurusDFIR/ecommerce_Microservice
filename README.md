@@ -105,6 +105,8 @@ Chi tiết xem trong file `TODO.md`
 
   - Diệp Đại Lê Hoài
 
+  - Nguyễn Ngọc Hòa
+
   - Ghi tiếp tên vào đây
 
 - Email: [Email của bạn]
