@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 require('dotenv').config();
 
+// Demo: Trigger CD workflow for presentation
 const app = express();
 const port = process.env.PORT || 8081;
 
