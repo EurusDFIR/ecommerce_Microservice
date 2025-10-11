@@ -36,6 +36,8 @@ curl http://34.143.235.74/categories
 
 - **Backend**: Node.js + Express
 - **Database**: Cloud SQL (PostgreSQL), Firestore
+ **Backend**: Node.js + Express
+- **Database**: Cloud SQL (PostgreSQL), Firestore
 - **Container**: Docker
 - **Orchestration**: Google Kubernetes Engine (GKE)
 - **CI/CD**: Cloud Build
