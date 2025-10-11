@@ -136,13 +136,13 @@ jobs:
         run: |
           # Decode base64 secret to JSON file
           echo "${{ secrets.GCP_SA_KEY }}" | base64 -d > ${HOME}/gcp-key.json
-          
+
           # Validate JSON
           if ! cat ${HOME}/gcp-key.json | jq empty 2>/dev/null; then
             echo "Error: Invalid JSON in GCP service account key"
             exit 1
           fi
-          
+
           # Set environment variable for gcloud
           echo "GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcp-key.json" >> $GITHUB_ENV
           echo "✅ GCP credentials file created"
@@ -154,15 +154,36 @@ jobs:
 
       - name: Authenticate with service account
         run: |
+          echo "🔐 Activating service account..."
+          
+          # Activate service account
           gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
+          
+          # Get service account email from key file
+          ACCOUNT_EMAIL=$(jq -r .client_email < ${HOME}/gcp-key.json)
+          echo "📧 Service account email: $ACCOUNT_EMAIL"
+          
+          # Set account explicitly
+          gcloud config set account $ACCOUNT_EMAIL
+          
+          # Set project
           gcloud config set project ${{ env.GCP_PROJECT_ID }}
+          
+          echo "✅ Authentication configured"
 
       - name: Verify authentication
         run: |
-          echo "✅ Authenticated as:"
+          echo "✅ Active account:"
+          gcloud config get-value account
+          
+          echo "✅ Authenticated accounts:"
           gcloud auth list
+          
           echo "✅ Current project:"
           gcloud config get-value project
+          
+          echo "✅ Testing GKE access:"
+          gcloud container clusters list --project=${{ env.GCP_PROJECT_ID }} || echo "Warning: No clusters found or permission issue"
 
       - name: Install gke-gcloud-auth-plugin
         run: |
