@@ -71,10 +71,10 @@ Please run:
   run: |
     # Activate service account (this automatically sets it as active!)
     gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
-    
+
     # Set project explicitly
     gcloud config set project ${{ env.GCP_PROJECT_ID }}
-    
+
     # Optional: Verify immediately
     echo "Active account: $(gcloud config get-value account)"
     echo "Project: $(gcloud config get-value project)"
@@ -175,15 +175,18 @@ kubectl get namespaces
 ## 🐛 Other Common Issues
 
 ### Issue 1: "jq: command not found" or "python parsing error"
+
 **Cause:** Trying to extract service account email from JSON file
 
 **Wrong approach:**
+
 ```bash
 # ❌ Don't do this - jq not available in runner
 ACCOUNT_EMAIL=$(jq -r .client_email < ${HOME}/gcp-key.json)
 ```
 
 **Correct approach:**
+
 ```bash
 # ✅ gcloud automatically sets account when activating
 gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json

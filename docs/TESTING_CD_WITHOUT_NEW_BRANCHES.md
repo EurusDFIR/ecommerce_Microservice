@@ -1,6 +1,7 @@
 # Quick Guide: Testing CD Workflow Without Creating New Branches
 
 ## 🎯 Vấn Đề
+
 Mỗi lần test CD phải tạo branch mới rất mất thời gian!
 
 ## ✅ Giải Pháp: 3 Cách Test CD
@@ -25,6 +26,7 @@ https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/cd-deploy.
 ```
 
 **Ưu điểm:**
+
 - ⚡ Nhanh nhất (không cần Git operations)
 - 🎯 Kiểm soát được deploy specific service
 - 🔄 Có thể chạy lại nhiều lần không giới hạn
@@ -55,6 +57,7 @@ git push origin demo/trigger-cd-workflow --force-with-lease
 ```
 
 **Ưu điểm:**
+
 - 🔄 Reuse branch, giảm clutter
 - 📝 Giữ lại lịch sử test
 - 🧹 Dọn dẹp dễ dàng
@@ -86,17 +89,18 @@ git push origin main
 
 ## 📊 So Sánh 3 Cách:
 
-| **Cách** | **Tốc Độ** | **Cần Branch Mới?** | **Cần PR?** | **Best For** |
-|---|---|---|---|---|
-| Manual Trigger | ⚡⚡⚡ | ❌ No | ❌ No | Demo, Quick Test |
-| Reuse Branch | ⚡⚡ | ❌ No | ✅ Yes | Development |
-| Direct Push | ⚡⚡⚡ | ❌ No | ❌ No | Emergency Only |
+| **Cách**       | **Tốc Độ** | **Cần Branch Mới?** | **Cần PR?** | **Best For**     |
+| -------------- | ---------- | ------------------- | ----------- | ---------------- |
+| Manual Trigger | ⚡⚡⚡     | ❌ No               | ❌ No       | Demo, Quick Test |
+| Reuse Branch   | ⚡⚡       | ❌ No               | ✅ Yes      | Development      |
+| Direct Push    | ⚡⚡⚡     | ❌ No               | ❌ No       | Emergency Only   |
 
 ---
 
 ## 🎬 Workflow Demo (Khuyến Nghị)
 
 ### **Setup Once:**
+
 ```bash
 # Tạo một demo branch dùng chung
 git checkout -b demo/cd-testing
@@ -107,6 +111,7 @@ git push origin demo/cd-testing
 ```
 
 ### **Reuse Every Time:**
+
 ```bash
 # Mỗi lần cần test CD:
 git checkout demo/cd-testing
@@ -129,17 +134,22 @@ git push origin demo/cd-testing --force-with-lease
 ## 🐛 Troubleshooting
 
 ### "Branch protection prevents direct push to main"
+
 **Solution:** Dùng Manual Trigger (Cách 1) - Không cần push vào main!
 
 ### "PR already merged, can't reuse"
-**Solution:** 
+
+**Solution:**
+
 1. Checkout branch cũ
 2. Force push với changes mới
 3. Tạo PR mới từ branch đó
 4. Hoặc dùng Manual Trigger!
 
 ### "Too many demo branches cluttering repo"
+
 **Solution:**
+
 ```bash
 # Cleanup old demo branches
 git branch -D demo/old-branch
@@ -155,20 +165,26 @@ git push origin -u demo/cd-test-reusable
 ## 🎓 Best Practices
 
 ### **Cho Development:**
+
 ✅ Dùng **Cách 2** (Reuse Branch)
+
 - Tạo một demo branch dùng chung
 - Force push mỗi lần test
 - Cleanup sau khi xong
 
 ### **Cho Demo/Presentation:**
+
 ✅ Dùng **Cách 1** (Manual Trigger)
+
 - Không cần Git operations
 - Kiểm soát timing
 - Ít rủi ro
 - Nhanh và rõ ràng
 
 ### **Cho Production:**
+
 ✅ Luôn dùng PR flow
+
 - Tạo branch từ `main`
 - Create PR
 - Wait for CI
@@ -181,6 +197,7 @@ git push origin -u demo/cd-test-reusable
 **Bạn KHÔNG CẦN tạo branch mới mỗi lần test CD!**
 
 **Best practice:**
+
 1. **Demo:** Manual Trigger (0 Git operations)
 2. **Dev:** Reuse demo branch (1 branch cho tất cả tests)
 3. **Prod:** Proper PR flow (best practices)
@@ -189,4 +206,4 @@ git push origin -u demo/cd-test-reusable
 
 ---
 
-*Last Updated: October 11, 2025*
+_Last Updated: October 11, 2025_
