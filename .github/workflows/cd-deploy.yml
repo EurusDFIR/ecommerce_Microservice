@@ -6,15 +6,6 @@ on:
     paths:
       - "services/**"
       - "infrastructure/k8s/**"
-    paths-ignore:
-      - "docs/**"
-      - "*.md"
-      - "README.md"
-      - "postman/**"
-      - ".gitignore"
-      - ".github/workflows/ci-*.yml"
-      - ".github/workflows/database-migrations.yml"
-      - ".github/workflows/hotfix-deployment.yml"
   workflow_dispatch:
     inputs:
       service:
