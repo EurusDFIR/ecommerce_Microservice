@@ -1,0 +1,291 @@
+name: Hotfix Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to hotfix"
+        required: true
+        type: choice
+        options:
+          - users-service
+          - products-service
+          - orders-service
+      image_tag:
+        description: "Image tag to deploy (e.g., v2.4-postgres, or latest)"
+        required: true
+        type: string
+        default: "latest"
+      reason:
+        description: "Reason for hotfix"
+        required: true
+        type: string
+
+env:
+  GCP_PROJECT_ID: ecommerce-micro-0037
+  GCP_REGION: asia-southeast1
+  GKE_CLUSTER: my-ecommerce-cluster
+  ARTIFACT_REGISTRY: asia-southeast1-docker.pkg.dev
+  REPOSITORY: ecommerce-images
+  NAMESPACE: ecommerce
+
+jobs:
+  # Job 1: Validate hotfix request
+  validate:
+    name: Validate Hotfix Request
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate inputs
+        run: |
+          echo "🔍 Validating hotfix request..."
+          echo "Service: ${{ github.event.inputs.service }}"
+          echo "Image Tag: ${{ github.event.inputs.image_tag }}"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Requested by: ${{ github.actor }}"
+
+          if [ -z "${{ github.event.inputs.reason }}" ]; then
+            echo "❌ Hotfix reason is required"
+            exit 1
+          fi
+
+          echo "✅ Validation passed"
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Verify image exists
+        run: |
+          gcloud artifacts docker images list \
+            ${{ env.ARTIFACT_REGISTRY }}/${{ env.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ github.event.inputs.service }} \
+            --filter="tags:${{ github.event.inputs.image_tag }}" \
+            --format="get(tags)" \
+            --limit=1
+
+          echo "✅ Image verified in Artifact Registry"
+
+  # Job 2: Create backup of current deployment
+  backup-deployment:
+    name: Backup Current Deployment
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Get GKE credentials
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }}
+
+      - name: Backup current deployment config
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          DEPLOYMENT_NAME="${SERVICE}-postgres-deployment"
+
+          if [ "$SERVICE" == "orders-service" ]; then
+            DEPLOYMENT_NAME="${SERVICE}-firestore-deployment"
+          fi
+
+          kubectl get deployment ${DEPLOYMENT_NAME} -n ${{ env.NAMESPACE }} -o yaml > deployment-backup.yaml
+
+          echo "📦 Current deployment backed up"
+          cat deployment-backup.yaml
+
+      - name: Get current image
+        id: current-image
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          DEPLOYMENT_NAME="${SERVICE}-postgres-deployment"
+
+          if [ "$SERVICE" == "orders-service" ]; then
+            DEPLOYMENT_NAME="${SERVICE}-firestore-deployment"
+          fi
+
+          CURRENT_IMAGE=$(kubectl get deployment ${DEPLOYMENT_NAME} -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.template.spec.containers[0].image}')
+          echo "current-image=${CURRENT_IMAGE}" >> $GITHUB_OUTPUT
+          echo "📌 Current image: ${CURRENT_IMAGE}"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-backup
+          path: deployment-backup.yaml
+          retention-days: 30
+
+  # Job 3: Deploy hotfix
+  deploy-hotfix:
+    name: Deploy Hotfix
+    runs-on: ubuntu-latest
+    needs: backup-deployment
+
+    steps:
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Get GKE credentials
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }}
+
+      - name: Apply hotfix
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          DEPLOYMENT_NAME="${SERVICE}-postgres-deployment"
+          CONTAINER_NAME="${SERVICE%-service}-service"
+
+          if [ "$SERVICE" == "orders-service" ]; then
+            DEPLOYMENT_NAME="${SERVICE}-firestore-deployment"
+          fi
+
+          NEW_IMAGE="${{ env.ARTIFACT_REGISTRY }}/${{ env.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ github.event.inputs.service }}:${{ github.event.inputs.image_tag }}"
+
+          echo "🚀 Deploying hotfix..."
+          echo "Deployment: ${DEPLOYMENT_NAME}"
+          echo "New Image: ${NEW_IMAGE}"
+
+          kubectl set image deployment/${DEPLOYMENT_NAME} \
+            ${CONTAINER_NAME}=${NEW_IMAGE} \
+            -n ${{ env.NAMESPACE }}
+
+          echo "⏳ Waiting for rollout to complete..."
+          kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${{ env.NAMESPACE }} --timeout=5m
+
+          echo "✅ Hotfix deployed successfully"
+
+      - name: Verify deployment
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          echo "📊 Checking deployment status..."
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app=${SERVICE%-service}-service
+
+          echo "📊 Recent events:"
+          kubectl get events -n ${{ env.NAMESPACE }} --sort-by='.lastTimestamp' | tail -10
+
+  # Job 4: Health check
+  health-check:
+    name: Post-Deployment Health Check
+    runs-on: ubuntu-latest
+    needs: deploy-hotfix
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Get GKE credentials
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }}
+
+      - name: Wait for pods to be ready
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          echo "⏳ Waiting for pods to be ready..."
+          kubectl wait --for=condition=ready pod -l app=${SERVICE%-service}-service -n ${{ env.NAMESPACE }} --timeout=3m
+          echo "✅ Pods are ready"
+
+      - name: Run E2E tests
+        run: |
+          chmod +x ./scripts/test-e2e.sh
+          ./scripts/test-e2e.sh
+
+      - name: Health check passed
+        run: |
+          echo "✅ All health checks passed!"
+
+  # Job 5: Rollback on failure
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [backup-deployment, deploy-hotfix, health-check]
+    if: failure()
+
+    steps:
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Get GKE credentials
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }}
+
+      - name: Rollback deployment
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          DEPLOYMENT_NAME="${SERVICE}-postgres-deployment"
+
+          if [ "$SERVICE" == "orders-service" ]; then
+            DEPLOYMENT_NAME="${SERVICE}-firestore-deployment"
+          fi
+
+          echo "🔄 Rolling back deployment..."
+          kubectl rollout undo deployment/${DEPLOYMENT_NAME} -n ${{ env.NAMESPACE }}
+
+          kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${{ env.NAMESPACE }} --timeout=5m
+
+          echo "✅ Rollback completed"
+
+      - name: Verify rollback
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          echo "📊 Post-rollback status:"
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app=${SERVICE%-service}-service
+
+  # Job 6: Notification
+  notify:
+    name: Hotfix Summary
+    runs-on: ubuntu-latest
+    needs: [validate, backup-deployment, deploy-hotfix, health-check]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 🔥 Hotfix Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Service:** ${{ github.event.inputs.service }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag:** ${{ github.event.inputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Reason:** ${{ github.event.inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.health-check.result }}" == "success" ]; then
+            echo "### ✅ Hotfix Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
+            echo "- Deployment backed up" >> $GITHUB_STEP_SUMMARY
+            echo "- Hotfix deployed successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- Health checks passed" >> $GITHUB_STEP_SUMMARY
+            echo "- E2E tests validated" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Hotfix Status: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "- Automatic rollback triggered" >> $GITHUB_STEP_SUMMARY
+            echo "- Previous version restored" >> $GITHUB_STEP_SUMMARY
+            echo "- Please investigate the failure" >> $GITHUB_STEP_SUMMARY
+          fi

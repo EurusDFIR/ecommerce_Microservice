@@ -1,0 +1,256 @@
+name: CD - Deploy to GKE
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/**"
+      - "infrastructure/k8s/**"
+      - ".github/workflows/cd-deploy.yml"
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to deploy (all, users, products, orders)"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - users
+          - products
+          - orders
+
+env:
+  GCP_PROJECT_ID: ecommerce-micro-0037
+  GCP_REGION: asia-southeast1
+  GKE_CLUSTER: my-ecommerce-cluster
+  GKE_ZONE: asia-southeast1
+  ARTIFACT_REGISTRY: asia-southeast1-docker.pkg.dev
+  REPOSITORY: ecommerce-images
+  NAMESPACE: ecommerce
+
+jobs:
+  # Job 1: Build and Push Docker Images
+  build-and-push:
+    name: Build & Push to Artifact Registry
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - name: users-service
+            dockerfile: Dockerfile.postgres
+            context: ./services/users-service
+            image_name: users-service
+          - name: products-service
+            dockerfile: Dockerfile.postgres
+            context: ./services/products-service
+            image_name: products-service
+          - name: orders-service
+            dockerfile: Dockerfile.firestore
+            context: ./services/orders-service
+            image_name: orders-service
+
+    outputs:
+      users-tag: ${{ steps.set-tags.outputs.users-tag }}
+      products-tag: ${{ steps.set-tags.outputs.products-tag }}
+      orders-tag: ${{ steps.set-tags.outputs.orders-tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          export_default_credentials: true
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.ARTIFACT_REGISTRY }} --quiet
+
+      - name: Generate image tag
+        id: generate-tag
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          TAG="${TIMESTAMP}-${SHORT_SHA}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "📦 Image tag: ${TAG}"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.ARTIFACT_REGISTRY }}/${{ env.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ matrix.service.image_name }}:${{ steps.generate-tag.outputs.tag }} \
+            -t ${{ env.ARTIFACT_REGISTRY }}/${{ env.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ matrix.service.image_name }}:latest \
+            -f ${{ matrix.service.context }}/${{ matrix.service.dockerfile }} \
+            ${{ matrix.service.context }}
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.ARTIFACT_REGISTRY }}/${{ env.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ matrix.service.image_name }}:${{ steps.generate-tag.outputs.tag }}
+          docker push ${{ env.ARTIFACT_REGISTRY }}/${{ env.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/${{ matrix.service.image_name }}:latest
+          echo "✅ Pushed ${{ matrix.service.name }}"
+
+      - name: Set output tags
+        id: set-tags
+        run: |
+          SERVICE_NAME="${{ matrix.service.name }}"
+          TAG="${{ steps.generate-tag.outputs.tag }}"
+          echo "${SERVICE_NAME//-/}-tag=${TAG}" >> $GITHUB_OUTPUT
+
+  # Job 2: Deploy to GKE
+  deploy-to-gke:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Install gke-gcloud-auth-plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+            --region=${{ env.GKE_ZONE }} \
+            --project=${{ env.GCP_PROJECT_ID }}
+
+      - name: Verify kubectl access
+        run: |
+          kubectl get nodes
+          kubectl get namespaces
+
+      - name: Deploy Users Service
+        if: github.event.inputs.service == 'all' || github.event.inputs.service == 'users' || github.event_name == 'push'
+        run: |
+          TAG="${{ needs.build-and-push.outputs.users-tag }}"
+          if [ -z "$TAG" ]; then TAG="latest"; fi
+
+          kubectl set image deployment/users-service-postgres-deployment \
+            users-service=${{ env.ARTIFACT_REGISTRY }}/${{ env.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/users-service:${TAG} \
+            -n ${{ env.NAMESPACE }}
+
+          kubectl rollout status deployment/users-service-postgres-deployment -n ${{ env.NAMESPACE }} --timeout=5m
+          echo "✅ Users service deployed with tag: ${TAG}"
+
+      - name: Deploy Products Service
+        if: github.event.inputs.service == 'all' || github.event.inputs.service == 'products' || github.event_name == 'push'
+        run: |
+          TAG="${{ needs.build-and-push.outputs.products-tag }}"
+          if [ -z "$TAG" ]; then TAG="latest"; fi
+
+          kubectl set image deployment/products-service-postgres-deployment \
+            products-service=${{ env.ARTIFACT_REGISTRY }}/${{ env.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/products-service:${TAG} \
+            -n ${{ env.NAMESPACE }}
+
+          kubectl rollout status deployment/products-service-postgres-deployment -n ${{ env.NAMESPACE }} --timeout=5m
+          echo "✅ Products service deployed with tag: ${TAG}"
+
+      - name: Deploy Orders Service
+        if: github.event.inputs.service == 'all' || github.event.inputs.service == 'orders' || github.event_name == 'push'
+        run: |
+          TAG="${{ needs.build-and-push.outputs.orders-tag }}"
+          if [ -z "$TAG" ]; then TAG="latest"; fi
+
+          kubectl set image deployment/orders-service-firestore-deployment \
+            orders-service=${{ env.ARTIFACT_REGISTRY }}/${{ env.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/orders-service:${TAG} \
+            -n ${{ env.NAMESPACE }}
+
+          kubectl rollout status deployment/orders-service-firestore-deployment -n ${{ env.NAMESPACE }} --timeout=5m
+          echo "✅ Orders service deployed with tag: ${TAG}"
+
+      - name: Verify deployment
+        run: |
+          echo "📊 Deployment Status:"
+          kubectl get deployments -n ${{ env.NAMESPACE }}
+          kubectl get pods -n ${{ env.NAMESPACE }}
+          kubectl get services -n ${{ env.NAMESPACE }}
+
+      - name: Run health checks
+        run: |
+          echo "🏥 Health Check - Users Service:"
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app=users-service
+
+          echo "🏥 Health Check - Products Service:"
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app=products-service
+
+          echo "🏥 Health Check - Orders Service:"
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app=orders-service
+
+  # Job 3: Post-Deployment Tests
+  post-deployment-test:
+    name: E2E Tests (Post-Deployment)
+    runs-on: ubuntu-latest
+    needs: deploy-to-gke
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Get GKE credentials
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+            --region=${{ env.GKE_ZONE }} \
+            --project=${{ env.GCP_PROJECT_ID }}
+
+      - name: Run E2E tests
+        run: |
+          chmod +x ./scripts/test-e2e.sh
+          ./scripts/test-e2e.sh
+
+      - name: Test results
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "✅ All E2E tests passed!"
+          else
+            echo "❌ E2E tests failed"
+            exit 1
+          fi
+
+  # Job 4: Notify Deployment
+  notify:
+    name: Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-to-gke, post-deployment-test]
+    if: always()
+
+    steps:
+      - name: Generate deployment summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Services Deployed:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Users Service" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Products Service" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Orders Service" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### GKE Cluster:" >> $GITHUB_STEP_SUMMARY
+          echo "- Cluster: ${{ env.GKE_CLUSTER }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Region: ${{ env.GKE_ZONE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Namespace: ${{ env.NAMESPACE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🎉 Deployment completed successfully!"

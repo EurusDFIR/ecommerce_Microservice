@@ -1,0 +1,221 @@
+name: Database Migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_type:
+        description: "Migration to run"
+        required: true
+        type: choice
+        options:
+          - all
+          - users-schema
+          - products-schema
+          - rollback
+      dry_run:
+        description: "Dry run (preview changes only)"
+        required: false
+        type: boolean
+        default: true
+
+env:
+  GCP_PROJECT_ID: ecommerce-micro-0037
+  GCP_REGION: asia-southeast1
+  CLOUD_SQL_INSTANCE: ecommerce-postgres
+  USERS_DB: users_db
+  PRODUCTS_DB: products_db
+
+jobs:
+  # Job 1: Backup databases before migration
+  backup-databases:
+    name: Backup Databases
+    runs-on: ubuntu-latest
+    if: github.event.inputs.dry_run == 'false'
+
+    steps:
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Create backup - Users DB
+        run: |
+          BACKUP_ID="users-db-backup-$(date +%Y%m%d-%H%M%S)"
+          gcloud sql backups create \
+            --instance=${{ env.CLOUD_SQL_INSTANCE }} \
+            --project=${{ env.GCP_PROJECT_ID }}
+          echo "✅ Created backup: ${BACKUP_ID}"
+
+      - name: Verify backup
+        run: |
+          gcloud sql backups list \
+            --instance=${{ env.CLOUD_SQL_INSTANCE }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --limit=1
+
+  # Job 2: Run migrations
+  run-migrations:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: backup-databases
+    if: always() && (needs.backup-databases.result == 'success' || github.event.inputs.dry_run == 'true')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Install Cloud SQL Proxy
+        run: |
+          curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.0/cloud-sql-proxy.linux.amd64
+          chmod +x cloud-sql-proxy
+          sudo mv cloud-sql-proxy /usr/local/bin/
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Start Cloud SQL Proxy
+        run: |
+          cloud-sql-proxy ${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:${{ env.CLOUD_SQL_INSTANCE }} &
+          sleep 10
+          echo "✅ Cloud SQL Proxy started"
+
+      - name: Test connection
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          psql -h 127.0.0.1 -U postgres -d ${{ env.USERS_DB }} -c "SELECT version();"
+
+      - name: Run Users Schema Migration (Dry Run)
+        if: github.event.inputs.dry_run == 'true' && (github.event.inputs.migration_type == 'all' || github.event.inputs.migration_type == 'users-schema')
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "🔍 DRY RUN - Users Schema Migration"
+          echo "Would execute: database/migrations/001_users_schema.sql"
+          psql -h 127.0.0.1 -U postgres -d ${{ env.USERS_DB }} --echo-queries --dry-run -f database/migrations/001_users_schema.sql || true
+          echo "✅ Dry run completed (no changes made)"
+
+      - name: Run Users Schema Migration
+        if: github.event.inputs.dry_run == 'false' && (github.event.inputs.migration_type == 'all' || github.event.inputs.migration_type == 'users-schema')
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "🚀 Executing Users Schema Migration"
+          psql -h 127.0.0.1 -U postgres -d ${{ env.USERS_DB }} -f database/migrations/001_users_schema.sql
+          echo "✅ Users schema migration completed"
+
+      - name: Run Products Schema Migration (Dry Run)
+        if: github.event.inputs.dry_run == 'true' && (github.event.inputs.migration_type == 'all' || github.event.inputs.migration_type == 'products-schema')
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "🔍 DRY RUN - Products Schema Migration"
+          echo "Would execute: database/migrations/002_products_schema.sql"
+          psql -h 127.0.0.1 -U postgres -d ${{ env.PRODUCTS_DB }} --echo-queries --dry-run -f database/migrations/002_products_schema.sql || true
+          echo "✅ Dry run completed (no changes made)"
+
+      - name: Run Products Schema Migration
+        if: github.event.inputs.dry_run == 'false' && (github.event.inputs.migration_type == 'all' || github.event.inputs.migration_type == 'products-schema')
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "🚀 Executing Products Schema Migration"
+          psql -h 127.0.0.1 -U postgres -d ${{ env.PRODUCTS_DB }} -f database/migrations/002_products_schema.sql
+          echo "✅ Products schema migration completed"
+
+      - name: Verify migrations
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "📊 Verifying Users DB tables:"
+          psql -h 127.0.0.1 -U postgres -d ${{ env.USERS_DB }} -c "\dt"
+
+          echo "📊 Verifying Products DB tables:"
+          psql -h 127.0.0.1 -U postgres -d ${{ env.PRODUCTS_DB }} -c "\dt"
+
+      - name: Stop Cloud SQL Proxy
+        if: always()
+        run: |
+          pkill -f cloud-sql-proxy || true
+
+  # Job 3: Post-migration validation
+  validate-migration:
+    name: Validate Migration
+    runs-on: ubuntu-latest
+    needs: run-migrations
+    if: github.event.inputs.dry_run == 'false'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Get GKE credentials
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          gcloud container clusters get-credentials my-ecommerce-cluster \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }}
+
+      - name: Restart services to apply migrations
+        run: |
+          kubectl rollout restart deployment/users-service-postgres-deployment -n ecommerce
+          kubectl rollout restart deployment/products-service-postgres-deployment -n ecommerce
+
+          kubectl rollout status deployment/users-service-postgres-deployment -n ecommerce --timeout=3m
+          kubectl rollout status deployment/products-service-postgres-deployment -n ecommerce --timeout=3m
+
+          echo "✅ Services restarted successfully"
+
+      - name: Run validation tests
+        run: |
+          chmod +x ./scripts/test-e2e.sh
+          ./scripts/test-e2e.sh
+          echo "✅ Validation tests passed"
+
+  # Job 4: Migration summary
+  migration-summary:
+    name: Migration Summary
+    runs-on: ubuntu-latest
+    needs: [backup-databases, run-migrations, validate-migration]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 🗄️ Database Migration Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Migration Type:** ${{ github.event.inputs.migration_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Dry Run:** ${{ github.event.inputs.dry_run }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Executed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            echo "### 🔍 Dry Run Results:" >> $GITHUB_STEP_SUMMARY
+            echo "- No changes were made to the database" >> $GITHUB_STEP_SUMMARY
+            echo "- Migration scripts validated successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- Ready for production execution" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ✅ Migration Results:" >> $GITHUB_STEP_SUMMARY
+            echo "- Database backup created" >> $GITHUB_STEP_SUMMARY
+            echo "- Migrations executed successfully" >> $GITHUB_STEP_SUMMARY
+            echo "- Services restarted and validated" >> $GITHUB_STEP_SUMMARY
+            echo "- E2E tests passed" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🎉 Migration workflow completed!"

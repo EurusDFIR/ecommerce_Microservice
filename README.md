@@ -1,5 +1,9 @@
 # E-Commerce Microservices trên Google Cloud Platform
 
+![CI - Pull Request](https://github.com/YOUR_USERNAME/e-commerce-microservice/actions/workflows/ci-pull-request.yml/badge.svg)
+![CD - Deploy to GKE](https://github.com/YOUR_USERNAME/e-commerce-microservice/actions/workflows/cd-deploy.yml/badge.svg)
+![Database Migrations](https://github.com/YOUR_USERNAME/e-commerce-microservice/actions/workflows/database-migrations.yml/badge.svg)
+
 ## 🎉 Dự án đã LIVE!
 
 **🌐 API URL:** http://34.143.235.74
@@ -10,6 +14,8 @@
 curl http://34.143.235.74/products
 curl http://34.143.235.74/categories
 ```
+
+**CI/CD Status:** ✅ Automated with GitHub Actions
 
 ## Mô tả dự án
 
@@ -88,9 +94,41 @@ gcloud services enable sql-component.googleapis.com
 
 Chi tiết xem trong file `TODO.md`
 
+## CI/CD Pipeline
+
+✅ **Automated CI/CD with GitHub Actions**
+
+Our project uses GitHub Actions for continuous integration and deployment:
+
+- 🧪 **PR Validation** - Automated testing on pull requests
+- 🚀 **Auto Deploy** - Push to main triggers deployment to GKE
+- 🗄️ **Database Migrations** - Safe, automated schema updates
+- 🔥 **Hotfix Workflow** - Emergency deployment with auto-rollback
+
+**📚 Documentation:**
+
+- [CI/CD Pipeline Guide](docs/CI_CD_PIPELINE.md)
+- [GitHub Actions Setup](docs/GITHUB_ACTIONS_SETUP.md)
+
+**Workflow Status:**
+
+- CI checks run on every PR
+- Deployment to GKE on merge to main
+- E2E tests validate deployments
+- All workflows visible in [Actions tab](../../actions)
+
 ## Tài liệu
 
-- [TODO List](TODO.md) - Danh sách công việc cần thực hiện
+### Deployment & Operations
+
+- [Database Testing Status](docs/DATABASE_TESTING_STATUS.md) - E2E test results
+- [Database Deployment Success](docs/DATABASE_DEPLOYMENT_SUCCESS.md) - Migration status
+- [CI/CD Pipeline Documentation](docs/CI_CD_PIPELINE.md) - **⭐ NEW**
+- [GitHub Actions Setup Guide](docs/GITHUB_ACTIONS_SETUP.md) - **⭐ NEW**
+
+### Architecture & API
+
+- [TODO List](TODO.md) - Development roadmap
 - [Thiết kế kiến trúc](docs/architecture.md)
 - [API Documentation](docs/api.md)
 - [Deployment Guide](docs/deployment.md)
@@ -113,5 +151,3 @@ Chi tiết xem trong file `TODO.md`
 ## License
 
 MIT License
-
-

@@ -1,0 +1,38 @@
+# Sử dụng base image Node.js chính thức
+FROM node:18-slim
+
+# Thiết lập metadata
+LABEL maintainer="your-email@example.com"
+LABEL version="1.0.0"
+LABEL description="Orders Service for E-commerce Microservices"
+
+# Tạo thư mục làm việc
+WORKDIR /app
+
+# Tạo user không có root privileges
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy package files
+COPY package*.json ./
+
+# Cài đặt dependencies
+RUN npm install --production && npm cache clean --force
+
+# Copy source code
+COPY . .
+
+# Change ownership
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8083
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8083/health || exit 1
+
+# Start application
+CMD ["node", "app.js"]

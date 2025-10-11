@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-service-deployment
+  namespace: ecommerce
+  labels:
+    app: users-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: users-service
+  template:
+    metadata:
+      labels:
+        app: users-service
+        version: v1
+    spec:
+      containers:
+        - name: users-service
+          image: asia-southeast1-docker.pkg.dev/ecommerce-micro-0037/my-ecommerce-repo/users-service:v1
+          ports:
+            - containerPort: 8081
+              name: http
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "8081"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: users-service-secrets
+                  key: jwt-secret
+            - name: SERVICE_NAME
+              value: "users-service"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-service
+  namespace: ecommerce
+  labels:
+    app: users-service
+spec:
+  type: ClusterIP # Internal only - không expose ra ngoài
+  selector:
+    app: users-service
+  ports:
+    - port: 80
+      targetPort: 8081
+      protocol: TCP
+      name: http
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: users-service-secrets
+  namespace: ecommerce
+type: Opaque
+stringData:
+  jwt-secret: "your-super-secret-jwt-key-change-in-production-use-secret-manager"

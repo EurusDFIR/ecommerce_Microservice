@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-service-firestore-deployment
+  namespace: ecommerce
+  labels:
+    app: orders-service
+    version: v2-firestore
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: orders-service
+  template:
+    metadata:
+      labels:
+        app: orders-service
+        version: v2-firestore
+    spec:
+      serviceAccountName: ecommerce-ksa
+      containers:
+        - name: orders-service
+          image: asia-southeast1-docker.pkg.dev/ecommerce-micro-0037/my-ecommerce-repo/orders-service:v2-firestore
+          ports:
+            - containerPort: 8082
+              name: http
+          env:
+            - name: PORT
+              value: "8082"
+            - name: NODE_ENV
+              value: "production"
+            - name: GCP_PROJECT_ID
+              value: "ecommerce-micro-0037"
+            - name: PRODUCTS_SERVICE_URL
+              value: "http://products-service:80"
+            - name: USERS_SERVICE_URL
+              value: "http://users-service:80"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL

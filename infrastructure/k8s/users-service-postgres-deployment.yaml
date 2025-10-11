@@ -1,0 +1,146 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudsql-db-credentials
+  namespace: ecommerce
+type: Opaque
+stringData:
+  connection_name: "ecommerce-micro-0037:asia-southeast1:ecommerce-postgres"
+  users_db_name: "users_db"
+  users_db_user: "users_service_user"
+  users_db_password: "UsersService2024!"
+  products_db_name: "products_db"
+  products_db_user: "products_service_user"
+  products_db_password: "ProductsService2024!"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-service-postgres-deployment
+  namespace: ecommerce
+  labels:
+    app: users-service
+    version: v2-postgres
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: users-service
+  template:
+    metadata:
+      labels:
+        app: users-service
+        version: v2-postgres
+    spec:
+      serviceAccountName: ecommerce-ksa
+      containers:
+        # Main application container
+        - name: users-service
+          image: asia-southeast1-docker.pkg.dev/ecommerce-micro-0037/my-ecommerce-repo/users-service:v2-postgres
+          ports:
+            - containerPort: 8081
+              name: http
+          env:
+            - name: PORT
+              value: "8081"
+            - name: NODE_ENV
+              value: "production"
+            - name: CLOUD_SQL_CONNECTION_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cloudsql-db-credentials
+                  key: connection_name
+            - name: DB_HOST
+              value: "127.0.0.1" # Cloud SQL Proxy runs on localhost
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cloudsql-db-credentials
+                  key: users_db_name
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cloudsql-db-credentials
+                  key: users_db_user
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cloudsql-db-credentials
+                  key: users_db_password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: users-service-secrets
+                  key: jwt_secret
+            - name: JWT_EXPIRES_IN
+              value: "24h"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+        # Cloud SQL Proxy sidecar
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.0
+          args:
+            - "--structured-logs"
+            - "--port=5432"
+            - "ecommerce-micro-0037:asia-southeast1:ecommerce-postgres"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-service
+  namespace: ecommerce
+  labels:
+    app: users-service
+spec:
+  type: ClusterIP
+  selector:
+    app: users-service
+  ports:
+    - port: 80
+      targetPort: 8081
+      protocol: TCP
+      name: http
+  sessionAffinity: None
