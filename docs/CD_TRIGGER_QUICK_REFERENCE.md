@@ -68,15 +68,16 @@ https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/cd-deploy.
 
 ## 📊 So Sánh Trigger Logic:
 
-| **Thay Đổi** | **CI Trigger?** | **CD Trigger?** |
-|---|---|---|
-| `services/users-service/app.js` | ✅ Yes (PR) | ✅ Yes (merge) |
-| `infrastructure/k8s/deployment.yaml` | ✅ Yes (PR) | ✅ Yes (merge) |
-| `README.md` | ✅ Yes (PR) | ❌ **NO** |
-| `docs/ARCHITECTURE.md` | ✅ Yes (PR) | ❌ **NO** |
-| `postman/collection.json` | ✅ Yes (PR) | ❌ **NO** |
+| **Thay Đổi**                         | **CI Trigger?** | **CD Trigger?** |
+| ------------------------------------ | --------------- | --------------- |
+| `services/users-service/app.js`      | ✅ Yes (PR)     | ✅ Yes (merge)  |
+| `infrastructure/k8s/deployment.yaml` | ✅ Yes (PR)     | ✅ Yes (merge)  |
+| `README.md`                          | ✅ Yes (PR)     | ❌ **NO**       |
+| `docs/ARCHITECTURE.md`               | ✅ Yes (PR)     | ❌ **NO**       |
+| `postman/collection.json`            | ✅ Yes (PR)     | ❌ **NO**       |
 
 **Tóm tắt:**
+
 - **CI:** Luôn chạy trên mọi PR (kiểm tra code quality)
 - **CD:** Chỉ chạy khi code services/infrastructure thay đổi (deploy có chủ đích)
 
@@ -85,6 +86,7 @@ https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/cd-deploy.
 ## 🎬 Kịch Bản Demo Thực Tế:
 
 ### Demo 1: Update Docs (CI Only)
+
 ```bash
 # Thay đổi README
 echo "Update" >> README.md
@@ -98,6 +100,7 @@ git push
 ```
 
 ### Demo 2: Update Service (CI + CD)
+
 ```bash
 # Thay đổi service code
 echo "// Fix bug" >> services/users-service/app-postgres.js
@@ -121,6 +124,7 @@ git push
 **Giải pháp:** Đây là **ĐÚNG**! CD không nên chạy khi chỉ docs thay đổi.
 
 **Nếu muốn trigger CD:**
+
 1. Thêm một comment nhỏ vào service code
 2. Hoặc dùng manual trigger: `workflow_dispatch`
 
@@ -155,4 +159,4 @@ on:
 
 ---
 
-*Last Updated: October 11, 2025*
+_Last Updated: October 11, 2025_

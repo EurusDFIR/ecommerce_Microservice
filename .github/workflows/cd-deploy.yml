@@ -132,15 +132,58 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup GCP credentials
+      - name: Decode and setup GCP credentials
         run: |
+          # Decode base64 secret to JSON file
           echo "${{ secrets.GCP_SA_KEY }}" | base64 -d > ${HOME}/gcp-key.json
+
+          # Validate JSON
+          if ! cat ${HOME}/gcp-key.json | jq empty 2>/dev/null; then
+            echo "Error: Invalid JSON in GCP service account key"
+            exit 1
+          fi
+
+          # Set environment variable for gcloud
           echo "GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcp-key.json" >> $GITHUB_ENV
+          echo "✅ GCP credentials file created"
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Authenticate with service account
+        run: |
+          echo "🔐 Activating service account..."
+          
+          # Activate service account and capture output
+          gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
+          
+          # Get the authenticated account email from gcloud
+          ACCOUNT_EMAIL=$(gcloud config get-value account)
+          echo "📧 Active account: $ACCOUNT_EMAIL"
+          
+          # Set project explicitly
+          gcloud config set project ${{ env.GCP_PROJECT_ID }}
+          
+          # Verify account is set
+          echo "✅ Verifying configuration:"
+          echo "   Account: $(gcloud config get-value account)"
+          echo "   Project: $(gcloud config get-value project)"
+
+      - name: Verify authentication
+        run: |
+          echo "✅ Active account:"
+          gcloud config get-value account
+
+          echo "✅ Authenticated accounts:"
+          gcloud auth list
+
+          echo "✅ Current project:"
+          gcloud config get-value project
+
+          echo "✅ Testing GKE access:"
+          gcloud container clusters list --project=${{ env.GCP_PROJECT_ID }} || echo "Warning: No clusters found or permission issue"
 
       - name: Install gke-gcloud-auth-plugin
         run: |
