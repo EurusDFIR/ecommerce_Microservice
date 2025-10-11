@@ -143,6 +143,8 @@ Our project uses GitHub Actions for continuous integration and deployment:
 
   - Diệp Đại Lê Hoài
 
+  - Nguyễn Ngọc Hòa
+
   - Ghi tiếp tên vào đây
 
 - Email: [Email của bạn]
