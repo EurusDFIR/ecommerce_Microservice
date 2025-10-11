@@ -156,32 +156,32 @@ jobs:
         run: |
           echo "🔐 Activating service account..."
           
-          # Activate service account
+          # Activate service account and capture output
           gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
           
-          # Get service account email from key file
-          ACCOUNT_EMAIL=$(jq -r .client_email < ${HOME}/gcp-key.json)
-          echo "📧 Service account email: $ACCOUNT_EMAIL"
+          # Get the authenticated account email from gcloud
+          ACCOUNT_EMAIL=$(gcloud config get-value account)
+          echo "📧 Active account: $ACCOUNT_EMAIL"
           
-          # Set account explicitly
-          gcloud config set account $ACCOUNT_EMAIL
-          
-          # Set project
+          # Set project explicitly
           gcloud config set project ${{ env.GCP_PROJECT_ID }}
           
-          echo "✅ Authentication configured"
+          # Verify account is set
+          echo "✅ Verifying configuration:"
+          echo "   Account: $(gcloud config get-value account)"
+          echo "   Project: $(gcloud config get-value project)"
 
       - name: Verify authentication
         run: |
           echo "✅ Active account:"
           gcloud config get-value account
-          
+
           echo "✅ Authenticated accounts:"
           gcloud auth list
-          
+
           echo "✅ Current project:"
           gcloud config get-value project
-          
+
           echo "✅ Testing GKE access:"
           gcloud container clusters list --project=${{ env.GCP_PROJECT_ID }} || echo "Warning: No clusters found or permission issue"
 
