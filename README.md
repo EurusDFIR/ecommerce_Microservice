@@ -153,3 +153,22 @@ Our project uses GitHub Actions for continuous integration and deployment:
 ## License
 
 MIT License
+## Testing CI Pipeline
+
+The CI pipeline is automated using GitHub Actions and runs on every pull request and push to the main branch. It performs the following tasks:
+
+- Lints and builds all microservices.
+- Runs unit and integration tests.
+- Checks code quality and formatting.
+
+**How to test the CI pipeline:**
+
+1. **Create a Pull Request:** Push your changes to a new branch and open a pull request. The CI pipeline will automatically run and you can view the results in the "Checks" tab of your PR.
+2. **Manual Trigger:** You can manually trigger the workflow from the [Actions tab](https://github.com/YOUR_USERNAME/e-commerce-microservice/actions) in GitHub.
+3. **Check Status:** Look for the CI badge at the top of this README or visit the [CI workflow logs](https://github.com/YOUR_USERNAME/e-commerce-microservice/actions/workflows/ci-pull-request.yml).
+
+**Example:**
+
+```bash
+# After pushing your branch, open a PR and check the status:
+# (No local command needed, all runs on GitHub Actions)
