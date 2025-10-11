@@ -36,6 +36,8 @@ curl http://34.143.235.74/categories
 
 - **Backend**: Node.js + Express
 - **Database**: Cloud SQL (PostgreSQL), Firestore
+ **Backend**: Node.js + Express
+- **Database**: Cloud SQL (PostgreSQL), Firestore
 - **Container**: Docker
 - **Orchestration**: Google Kubernetes Engine (GKE)
 - **CI/CD**: Cloud Build
@@ -145,6 +147,8 @@ Our project uses GitHub Actions for continuous integration and deployment:
 
   - Nguyễn Ngọc Hòa
 
+  - Đoàn Thanh Phúc
+ 
   - Ghi tiếp tên vào đây
 
 - Email: [Email của bạn]
