@@ -1,6 +1,7 @@
 # Hướng Dẫn Demo & Test Workflows CI/CD
 
 ## 📋 Mục Lục
+
 1. [Chuẩn Bị Demo](#chuẩn-bị-demo)
 2. [Demo CI Workflow - Pull Request](#demo-ci-workflow)
 3. [Demo CD Workflow - Deploy to GKE](#demo-cd-workflow)
@@ -14,6 +15,7 @@
 ## 🎯 Chuẩn Bị Demo
 
 ### Checklist Trước Khi Demo:
+
 - [ ] Đảm bảo repo clean: `git status` không có uncommitted changes
 - [ ] Branch `main` đã có latest code
 - [ ] GKE cluster đang chạy: `gcloud container clusters list`
@@ -21,6 +23,7 @@
 - [ ] Internet connection ổn định (để access GitHub Actions & GCP)
 
 ### Secrets Cần Thiết:
+
 ```
 GCP_SA_KEY              # Base64-encoded GCP service account key
 CLOUDSQL_INSTANCE       # Cloud SQL instance connection name
@@ -28,6 +31,7 @@ DB_PASSWORD             # Database password
 ```
 
 ### Kiểm Tra GKE Cluster:
+
 ```bash
 # Authenticate với GKE
 gcloud container clusters get-credentials my-ecommerce-cluster \
@@ -45,11 +49,13 @@ kubectl get pods -n ecommerce
 ## 🔄 Demo CI Workflow - Pull Request
 
 ### Mục Đích:
+
 Kiểm tra code quality, build Docker images, và chạy security scan trước khi merge vào `main`.
 
 ### Các Bước Demo:
 
 #### 1. Tạo Feature Branch
+
 ```bash
 # Tạo branch mới
 git checkout -b demo/test-ci-workflow
@@ -66,21 +72,27 @@ git push origin demo/test-ci-workflow
 ```
 
 #### 2. Tạo Pull Request
+
 Vào GitHub: https://github.com/EurusDFIR/ecommerce_Microservice/pulls
 
 **Click "New pull request":**
+
 - Base: `main`
 - Compare: `demo/test-ci-workflow`
 - Title: `test: Demo CI workflow for presentation`
 - Description:
+
   ```markdown
   ## Purpose
+
   Demonstrate CI/CD pipeline for project report presentation.
-  
+
   ## Changes
+
   - Minor update to README for testing
-  
+
   ## Expected Results
+
   - ✅ All 7 CI checks should pass
   - ✅ Code quality validation
   - ✅ Docker images build successfully
@@ -88,9 +100,11 @@ Vào GitHub: https://github.com/EurusDFIR/ecommerce_Microservice/pulls
   ```
 
 #### 3. Theo Dõi CI Checks
+
 Click vào tab **"Checks"** trong PR để xem real-time:
 
 **Workflow: CI - Pull Request**
+
 - ✅ **Code Quality** (ESLint, formatting) - ~30s
 - ✅ **Build Users Service** (Docker build) - ~1m 30s
 - ✅ **Build Products Service** (Docker build) - ~1m 30s
@@ -104,12 +118,15 @@ Click vào tab **"Checks"** trong PR để xem real-time:
 #### 4. Giải Thích Cho Hội Đồng
 
 **Khi CI đang chạy:**
+
 > "Hệ thống CI của chúng em đang tự động kiểm tra code quality, build Docker images cho 3 microservices, và scan security vulnerabilities. Đây là best practice của DevOps để đảm bảo code chất lượng trước khi merge vào nhánh chính."
 
 **Khi CI pass:**
+
 > "Tất cả 7 checks đã pass, chứng tỏ code không có lỗi syntax, Docker images build thành công, và không có lỗ hổng bảo mật nghiêm trọng. Giờ chúng em có thể merge an toàn vào main."
 
 #### 5. Cleanup (Sau Demo)
+
 ```bash
 # Đóng PR không merge (nếu chỉ demo)
 # Hoặc merge nếu muốn giữ lại
@@ -123,24 +140,28 @@ git push origin --delete demo/test-ci-workflow
 ## 🚀 Demo CD Workflow - Deploy to GKE
 
 ### Mục Đích:
+
 Tự động build Docker images, push lên Artifact Registry, deploy lên GKE, và chạy E2E tests.
 
 ### ⚠️ Quan Trọng: CD Trigger Logic
 
 **CD Workflow CHỈ chạy khi:**
+
 ```yaml
 paths:
-  - "services/**"           # Code của microservices thay đổi
-  - "infrastructure/k8s/**"  # Kubernetes configs thay đổi
+  - "services/**" # Code của microservices thay đổi
+  - "infrastructure/k8s/**" # Kubernetes configs thay đổi
 ```
 
 **CD Workflow KHÔNG chạy khi chỉ thay đổi:**
+
 - `docs/**` (documentation)
 - `*.md` (README, etc.)
 - `postman/**` (API collections)
 - `.github/workflows/ci-*.yml` (CI workflows)
 
 **Ví dụ:**
+
 - ✅ Thay đổi `services/users-service/app.js` → **CD CHẠY**
 - ✅ Thay đổi `infrastructure/k8s/deployment.yaml` → **CD CHẠY**
 - ❌ Thay đổi `README.md` → **CD KHÔNG CHẠY** (đúng!)
@@ -149,41 +170,51 @@ paths:
 ### Các Bước Demo:
 
 #### 1. Trigger CD Workflow (Cách 1: Merge PR)
+
 **Merge PR từ demo CI ở trên:**
+
 - Click **"Merge pull request"** → **"Confirm merge"**
 - CD workflow sẽ tự động trigger
 
 **Giải thích:**
+
 > "Khi merge vào main, hệ thống CD tự động trigger để deploy lên production. Điều này đảm bảo code mới nhất luôn được deploy nhanh chóng và nhất quán."
 
 #### 2. Trigger CD Workflow (Cách 2: Manual - Khuyến Nghị cho Demo)
+
 Vào: https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/cd-deploy.yml
 
 **Click "Run workflow":**
+
 - Branch: `main`
 - Service: `all` (deploy cả 3 services)
 - Click **"Run workflow"**
 
 **Giải thích:**
+
 > "Chúng em cũng hỗ trợ manual deployment cho các trường hợp khẩn cấp hoặc khi cần kiểm soát thời điểm deploy cụ thể."
 
 #### 3. Theo Dõi CD Pipeline
+
 Click vào workflow run đang chạy:
 
 **Jobs sẽ chạy tuần tự:**
 
 **Job 1: Build & Push to Artifact Registry (~4-5 phút)**
+
 ```
 Setup GCP credentials → Set up Cloud SDK → Configure Docker
 → Generate image tag → Build Users Docker image → Push Users image
-→ Build Products Docker image → Push Products image  
+→ Build Products Docker image → Push Products image
 → Build Orders Docker image → Push Orders image
 ```
 
 **Giải thích:**
+
 > "Bước này build 3 Docker images cho 3 microservices và push lên Google Artifact Registry. Tag image dùng timestamp + commit SHA để dễ truy vết."
 
 **Job 2: Deploy to GKE (~2-3 phút)**
+
 ```
 Setup GCP credentials → Configure kubectl
 → Deploy Users Service → Deploy Products Service → Deploy Orders Service
@@ -191,9 +222,11 @@ Setup GCP credentials → Configure kubectl
 ```
 
 **Giải thích:**
+
 > "Sau khi build xong, hệ thống tự động deploy lên GKE cluster. Kubernetes sẽ rolling update để không có downtime."
 
 **Job 3: E2E Tests (~1-2 phút)**
+
 ```
 Setup environment → Run E2E test script
 → Test user registration → Test login → Test create order
@@ -201,9 +234,11 @@ Setup environment → Run E2E test script
 ```
 
 **Giải thích:**
+
 > "Cuối cùng chạy E2E tests để đảm bảo toàn bộ hệ thống hoạt động đúng sau khi deploy."
 
 **Job 4: Deployment Notification**
+
 ```
 Send notification to Slack/Discord (tùy chọn)
 ```
@@ -211,6 +246,7 @@ Send notification to Slack/Discord (tùy chọn)
 **Tổng thời gian:** ~8-12 phút
 
 #### 4. Verify Deployment Thành Công
+
 ```bash
 # Kiểm tra pods mới được deploy
 kubectl get pods -n ecommerce -o wide
@@ -223,6 +259,7 @@ curl http://[EXTERNAL-IP]:8081/api/users/health
 ```
 
 **Expected Output:**
+
 ```json
 {
   "status": "healthy",
@@ -236,11 +273,13 @@ curl http://[EXTERNAL-IP]:8081/api/users/health
 ## 🗄️ Demo Database Migrations
 
 ### Mục Đích:
+
 Chạy database migrations an toàn trên Cloud SQL production.
 
 ### Các Bước Demo:
 
 #### 1. Chuẩn Bị Migration Script (Nếu Chưa Có)
+
 ```bash
 # Tạo migration file mới
 cat > services/users-service/migrations/003_add_demo_table.sql << 'EOF'
@@ -256,6 +295,7 @@ EOF
 ```
 
 #### 2. Commit và Push Migration
+
 ```bash
 git add services/users-service/migrations/003_add_demo_table.sql
 git commit -m "feat: add demo migration for presentation"
@@ -263,17 +303,21 @@ git push origin main
 ```
 
 #### 3. Trigger Database Migrations Workflow
+
 Vào: https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/database-migrations.yml
 
 **Click "Run workflow":**
+
 - Branch: `main`
 - Service: `users-service-postgres`
 - Click **"Run workflow"**
 
 **Giải thích:**
+
 > "Workflow này chạy database migrations một cách an toàn, sử dụng Cloud SQL Auth Proxy để kết nối bảo mật. Chúng em có thể chọn service cụ thể để migrate."
 
 #### 4. Theo Dõi Migration Process
+
 ```
 Setup GCP credentials → Connect to Cloud SQL
 → Run migrations → Verify schema changes
@@ -282,6 +326,7 @@ Setup GCP credentials → Connect to Cloud SQL
 **Tổng thời gian:** ~1-2 phút
 
 #### 5. Verify Migration Thành Công
+
 ```bash
 # Connect to Cloud SQL (local)
 gcloud sql connect ecommerce-cloudsql-instance --user=postgres --database=ecommerce_users
@@ -294,8 +339,9 @@ SELECT * FROM demo_logs;
 ```
 
 **Expected Output:**
+
 ```
- id |                message                 |         created_at         
+ id |                message                 |         created_at
 ----+----------------------------------------+----------------------------
   1 | Demo migration executed successfully   | 2025-10-11 12:00:00.000000
 ```
@@ -305,11 +351,13 @@ SELECT * FROM demo_logs;
 ## 🔥 Demo Hotfix Deployment
 
 ### Mục Đích:
+
 Deploy hotfix nhanh chóng cho một service cụ thể mà không cần rebuild tất cả.
 
 ### Các Bước Demo:
 
 #### 1. Giả Lập Tình Huống Hotfix
+
 ```bash
 # Tạo hotfix branch
 git checkout main
@@ -334,17 +382,21 @@ git push origin hotfix/critical-bug-fix
 ```
 
 #### 2. Trigger Hotfix Deployment
+
 Vào: https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/hotfix-deployment.yml
 
 **Click "Run workflow":**
+
 - Branch: `hotfix/critical-bug-fix`
 - Service: `users-service`
 - Click **"Run workflow"**
 
 **Giải thích:**
+
 > "Trong trường hợp khẩn cấp, chúng em có workflow hotfix riêng để deploy nhanh chỉ service bị lỗi, không cần chờ CI đầy đủ. Điều này giảm downtime và giải quyết vấn đề nhanh hơn."
 
 #### 3. Theo Dõi Hotfix Deployment
+
 ```
 Build hotfix image → Push to Artifact Registry
 → Deploy to GKE → Quick smoke test
@@ -353,6 +405,7 @@ Build hotfix image → Push to Artifact Registry
 **Tổng thời gian:** ~3-4 phút (nhanh hơn CD đầy đủ)
 
 #### 4. Verify Hotfix
+
 ```bash
 # Check new pod deployed
 kubectl get pods -n ecommerce -l app=users-service
@@ -364,6 +417,7 @@ curl http://[EXTERNAL-IP]:8081/api/users/validate-email \
 ```
 
 #### 5. Cleanup (Merge Hotfix vào Main)
+
 ```bash
 # Create PR to merge hotfix back to main
 git checkout main
@@ -380,11 +434,13 @@ git push origin --delete hotfix/critical-bug-fix
 ## 🧪 Demo End-to-End Testing
 
 ### Mục Đích:
+
 Kiểm tra toàn bộ luồng nghiệp vụ từ đầu đến cuối.
 
 ### Các Bước Demo:
 
 #### 1. Chuẩn Bị Test Environment
+
 ```bash
 # Get external IP của services
 kubectl get services -n ecommerce
@@ -396,6 +452,7 @@ export ORDERS_API="http://[ORDERS-SERVICE-IP]:8083"
 ```
 
 #### 2. Chạy E2E Test Script
+
 ```bash
 # Chạy test script có sẵn
 cd scripts
@@ -458,6 +515,7 @@ curl -X GET $ORDERS_API/api/orders/user/demo_user \
 ```
 
 #### 3. Chạy Postman Collection
+
 ```bash
 # Import collection vào Postman
 # File: postman/E-commerce_Microservices_API_Collection.json
@@ -470,6 +528,7 @@ npx newman run postman/E-commerce_Microservices_API_Collection.json \
 ```
 
 **Kết quả mong đợi:**
+
 ```
 ┌─────────────────────────┬──────────┬──────────┐
 │                         │ executed │   failed │
@@ -487,6 +546,7 @@ npx newman run postman/E-commerce_Microservices_API_Collection.json \
 ```
 
 **Giải thích:**
+
 > "Chúng em có Postman Collection với 27 API requests và 81 test assertions để kiểm tra toàn bộ chức năng của hệ thống. Tất cả tests đều pass, chứng tỏ hệ thống hoạt động đúng như mong đợi."
 
 ---
@@ -494,17 +554,20 @@ npx newman run postman/E-commerce_Microservices_API_Collection.json \
 ## 🎬 Kịch Bản Demo Hoàn Chỉnh (15-20 phút)
 
 ### Phần 1: Giới Thiệu Kiến Trúc (2 phút)
+
 1. Mở file `docs/ARCHITECTURE_DIAGRAM.md`
 2. Giải thích sơ đồ kiến trúc Microservices
 3. Giải thích quy trình CI/CD
 
 ### Phần 2: Demo CI Workflow (5 phút)
+
 1. Tạo branch mới và PR
 2. Theo dõi CI checks real-time
 3. Giải thích từng job đang chạy
 4. Xác nhận tất cả checks pass
 
 ### Phần 3: Demo CD Workflow (7 phút)
+
 1. Trigger manual deployment
 2. Theo dõi build & push Docker images
 3. Theo dõi deployment lên GKE
@@ -512,15 +575,18 @@ npx newman run postman/E-commerce_Microservices_API_Collection.json \
 5. Chạy E2E tests tự động
 
 ### Phần 4: Demo Database Migrations (3 phút)
+
 1. Trigger migration workflow
 2. Verify schema changes trên Cloud SQL
 
 ### Phần 5: Demo E2E Testing (3 phút)
+
 1. Chạy Postman Collection
 2. Show test results: 27 requests, 81 assertions pass
 3. Demo một số API calls thủ công
 
 ### Phần 6: Tổng Kết (2 phút)
+
 1. Recap các best practices đã áp dụng
 2. Show metrics: deployment frequency, success rate
 3. Q&A
@@ -530,9 +596,11 @@ npx newman run postman/E-commerce_Microservices_API_Collection.json \
 ## 🐛 Troubleshooting
 
 ### Problem 1: CI Workflow Không Trigger
+
 **Triệu chứng:** Push code nhưng không thấy CI chạy.
 
 **Giải pháp:**
+
 ```bash
 # Kiểm tra workflow syntax
 cat .github/workflows/ci-pull-request.yml
@@ -546,9 +614,11 @@ git push origin [branch] --force-with-lease
 ```
 
 ### Problem 2: CD Deployment Failed - Authentication Error
+
 **Triệu chứng:** `denied: Unauthenticated request`
 
 **Giải pháp:**
+
 ```bash
 # Kiểm tra GCP_SA_KEY secret
 # Vào Settings > Secrets > Actions > GCP_SA_KEY
@@ -565,9 +635,11 @@ cat key.json | base64 -w 0
 ```
 
 ### Problem 3: E2E Tests Failed
+
 **Triệu chứng:** Một số test cases fail.
 
 **Giải pháp:**
+
 ```bash
 # Kiểm tra pods đang chạy
 kubectl get pods -n ecommerce
@@ -583,9 +655,11 @@ curl http://[EXTERNAL-IP]:8081/api/users/health
 ```
 
 ### Problem 4: Workflow Chạy Quá Lâu
+
 **Triệu chứng:** CD workflow > 15 phút.
 
 **Giải pháp:**
+
 ```bash
 # Kiểm tra logs của job bị chậm
 # Thường là "Build & Push" job
@@ -601,9 +675,11 @@ gh workflow run cd-deploy.yml --ref main
 ```
 
 ### Problem 5: GKE Pods CrashLoopBackOff
+
 **Triệu chứng:** Pods không start được sau deploy.
 
 **Giải pháp:**
+
 ```bash
 # Kiểm tra pod status
 kubectl describe pod [pod-name] -n ecommerce
@@ -628,17 +704,20 @@ gcloud artifacts docker images list \
 ## 📊 Metrics & KPIs Để Trình Bày
 
 ### CI/CD Performance:
+
 - **Deployment Frequency:** ~3-5 lần/ngày
 - **Lead Time:** < 15 phút (từ commit đến production)
 - **Change Failure Rate:** < 5%
 - **Mean Time to Recovery (MTTR):** < 10 phút (hotfix)
 
 ### System Performance:
+
 - **API Response Time:** < 200ms (p95)
 - **Uptime:** 99.9%
 - **Concurrent Users:** 100+ (tested)
 
 ### Test Coverage:
+
 - **Unit Tests:** 80%+
 - **Integration Tests:** 27 API endpoints
 - **E2E Tests:** 81 assertions
@@ -648,18 +727,23 @@ gcloud artifacts docker images list \
 ## 🎓 Câu Hỏi Thường Gặp Từ Hội Đồng
 
 ### Q1: "Tại sao không dùng Jenkins mà dùng GitHub Actions?"
+
 **A:** GitHub Actions tích hợp sẵn với repository, không cần setup server riêng, có 2000 phút/tháng miễn phí, và dễ maintain hơn. Phù hợp với quy mô dự án hiện tại.
 
 ### Q2: "Làm sao đảm bảo không có downtime khi deploy?"
+
 **A:** Kubernetes rolling update deployment với `maxUnavailable: 0` và `maxSurge: 1`. GKE tự động tạo pod mới trước khi tắt pod cũ.
 
 ### Q3: "Secret management có an toàn không?"
+
 **A:** Secrets được lưu encrypted trên GitHub, decode trong runtime, không commit vào code. GCP service account có IAM roles giới hạn theo principle of least privilege.
 
 ### Q4: "Nếu một microservice lỗi thì ảnh hưởng gì?"
+
 **A:** Mỗi service độc lập, lỗi một service không crash toàn bộ hệ thống. Health checks tự động restart pod bị lỗi.
 
 ### Q5: "Chi phí vận hành GCP là bao nhiêu?"
+
 **A:** GKE cluster: ~$100/tháng, Cloud SQL: ~$50/tháng, Firestore: ~$20/tháng. Tổng ~$170/tháng cho production environment.
 
 ---
@@ -667,6 +751,7 @@ gcloud artifacts docker images list \
 ## ✅ Checklist Trước Khi Demo
 
 ### Technical:
+
 - [ ] GKE cluster running và healthy
 - [ ] Tất cả pods trong trạng thái READY
 - [ ] GitHub Secrets configured đúng
@@ -675,6 +760,7 @@ gcloud artifacts docker images list \
 - [ ] Internet connection stable
 
 ### Presentation:
+
 - [ ] Mở sẵn GitHub Actions tab
 - [ ] Mở sẵn GCP Console
 - [ ] Mở sẵn terminal với kubectl configured
@@ -682,6 +768,7 @@ gcloud artifacts docker images list \
 - [ ] Chuẩn bị backup slides/screenshots nếu demo fail
 
 ### Documentation:
+
 - [ ] `docs/ARCHITECTURE_DIAGRAM.md` reviewed
 - [ ] `docs/BAO_CAO_DO_AN_ECOMMERCE_MICROSERVICES_GCP.md` printed/ready
 - [ ] `postman/README.md` for API testing guide
@@ -697,6 +784,6 @@ Với hướng dẫn này, bạn có thể tự tin demo toàn bộ quy trình C
 
 ---
 
-*Document Version: 1.0*  
-*Last Updated: October 11, 2025*  
-*Author: EurusDFIR Team*
+_Document Version: 1.0_  
+_Last Updated: October 11, 2025_  
+_Author: EurusDFIR Team_
