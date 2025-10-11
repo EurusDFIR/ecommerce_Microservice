@@ -125,6 +125,27 @@ git push origin --delete demo/test-ci-workflow
 ### Mục Đích:
 Tự động build Docker images, push lên Artifact Registry, deploy lên GKE, và chạy E2E tests.
 
+### ⚠️ Quan Trọng: CD Trigger Logic
+
+**CD Workflow CHỈ chạy khi:**
+```yaml
+paths:
+  - "services/**"           # Code của microservices thay đổi
+  - "infrastructure/k8s/**"  # Kubernetes configs thay đổi
+```
+
+**CD Workflow KHÔNG chạy khi chỉ thay đổi:**
+- `docs/**` (documentation)
+- `*.md` (README, etc.)
+- `postman/**` (API collections)
+- `.github/workflows/ci-*.yml` (CI workflows)
+
+**Ví dụ:**
+- ✅ Thay đổi `services/users-service/app.js` → **CD CHẠY**
+- ✅ Thay đổi `infrastructure/k8s/deployment.yaml` → **CD CHẠY**
+- ❌ Thay đổi `README.md` → **CD KHÔNG CHẠY** (đúng!)
+- ❌ Thay đổi `docs/ARCHITECTURE.md` → **CD KHÔNG CHẠY** (đúng!)
+
 ### Các Bước Demo:
 
 #### 1. Trigger CD Workflow (Cách 1: Merge PR)
