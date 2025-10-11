@@ -154,30 +154,95 @@ jobs:
 
       - name: Authenticate with service account
         run: |
+          set -e  # Exit on any error
+
           echo "🔐 Activating service account..."
-          
-          # Activate service account and capture output
-          gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
-          
-          # Get the authenticated account email from gcloud
-          ACCOUNT_EMAIL=$(gcloud config get-value account)
+
+          # Check if key file exists
+          if [ ! -f "${HOME}/gcp-key.json" ]; then
+            echo "❌ Error: gcp-key.json not found!"
+            exit 1
+          fi
+
+          # Show key file info (without content)
+          echo "📄 Key file size: $(wc -c < ${HOME}/gcp-key.json) bytes"
+
+          # Activate service account with explicit error handling
+          if ! gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json 2>&1; then
+            echo "❌ Error: Failed to activate service account!"
+            echo "Checking key file format..."
+            head -n 3 ${HOME}/gcp-key.json
+            exit 1
+          fi
+
+          echo "✅ Service account activated"
+
+          # Get account email and verify it's not empty
+          ACCOUNT_EMAIL=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+          if [ -z "$ACCOUNT_EMAIL" ]; then
+            echo "❌ Error: No active account found after activation!"
+            gcloud auth list
+            exit 1
+          fi
+
           echo "📧 Active account: $ACCOUNT_EMAIL"
-          
-          # Set project explicitly
+
+          # Set account explicitly using the email we just got
+          gcloud config set account "$ACCOUNT_EMAIL"
+
+          # Set project
           gcloud config set project ${{ env.GCP_PROJECT_ID }}
-          
-          # Verify account is set
-          echo "✅ Verifying configuration:"
+
+          # Final verification
+          echo "✅ Configuration set:"
           echo "   Account: $(gcloud config get-value account)"
           echo "   Project: $(gcloud config get-value project)"
 
       - name: Verify authentication
         run: |
-          echo "✅ Active account:"
-          gcloud config get-value account
+          set -e
 
-          echo "✅ Authenticated accounts:"
+          echo "=== Authentication Verification ==="
+
+          echo "1️⃣ Active account:"
+          ACTIVE_ACCOUNT=$(gcloud config get-value account)
+          if [ -z "$ACTIVE_ACCOUNT" ]; then
+            echo "❌ ERROR: No active account!"
+            exit 1
+          fi
+          echo "   ✅ $ACTIVE_ACCOUNT"
+
+          echo ""
+          echo "2️⃣ All authenticated accounts:"
           gcloud auth list
+
+          echo ""
+          echo "3️⃣ Current project:"
+          CURRENT_PROJECT=$(gcloud config get-value project)
+          if [ -z "$CURRENT_PROJECT" ]; then
+            echo "❌ ERROR: No project set!"
+            exit 1
+          fi
+          echo "   ✅ $CURRENT_PROJECT"
+
+          echo ""
+          echo "4️⃣ Testing GCP API access:"
+          if gcloud projects describe $CURRENT_PROJECT --format="value(projectId)" > /dev/null 2>&1; then
+            echo "   ✅ Can access project API"
+          else
+            echo "   ⚠️  Warning: Cannot access project API (may need permissions)"
+          fi
+
+          echo ""
+          echo "5️⃣ Testing GKE access:"
+          if gcloud container clusters list --project=$CURRENT_PROJECT > /dev/null 2>&1; then
+            echo "   ✅ Can list GKE clusters"
+          else
+            echo "   ⚠️  Warning: Cannot list clusters (checking permissions...)"
+          fi
+
+          echo ""
+          echo "=== All verifications passed! ==="
 
           echo "✅ Current project:"
           gcloud config get-value project
@@ -267,19 +332,78 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup GCP credentials
+      - name: Decode GCP credentials
         run: |
+          # Decode base64 secret to JSON file
           echo "${{ secrets.GCP_SA_KEY }}" | base64 -d > ${HOME}/gcp-key.json
+          
+          # Validate JSON
+          if ! cat ${HOME}/gcp-key.json | jq empty 2>/dev/null; then
+            echo "Error: Invalid JSON in GCP service account key"
+            exit 1
+          fi
+          
+          # Set environment variable for gcloud
           echo "GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcp-key.json" >> $GITHUB_ENV
+          echo "✅ GCP credentials file created"
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Get GKE credentials
+      - name: Authenticate with service account
+        run: |
+          set -e  # Exit on any error
+          
+          echo "🔐 Activating service account..."
+          
+          # Check if key file exists
+          if [ ! -f "${HOME}/gcp-key.json" ]; then
+            echo "❌ Error: gcp-key.json not found!"
+            exit 1
+          fi
+          
+          # Show key file info (without content)
+          echo "📄 Key file size: $(wc -c < ${HOME}/gcp-key.json) bytes"
+          
+          # Activate service account with explicit error handling
+          if ! gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json 2>&1; then
+            echo "❌ Error: Failed to activate service account!"
+            echo "Checking key file format..."
+            head -n 3 ${HOME}/gcp-key.json
+            exit 1
+          fi
+          
+          echo "✅ Service account activated"
+          
+          # Get account email and verify it's not empty
+          ACCOUNT_EMAIL=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+          if [ -z "$ACCOUNT_EMAIL" ]; then
+            echo "❌ Error: No active account found after activation!"
+            gcloud auth list
+            exit 1
+          fi
+          
+          echo "📧 Active account: $ACCOUNT_EMAIL"
+          
+          # Set account explicitly using the email we just got
+          gcloud config set account "$ACCOUNT_EMAIL"
+          
+          # Set project
+          gcloud config set project ${{ env.GCP_PROJECT_ID }}
+          
+          # Final verification
+          echo "✅ Configuration set:"
+          echo "   Account: $(gcloud config get-value account)"
+          echo "   Project: $(gcloud config get-value project)"
+
+      - name: Install gke-gcloud-auth-plugin
         run: |
           gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Get GKE credentials
+        run: |
           gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
             --region=${{ env.GKE_ZONE }} \
             --project=${{ env.GCP_PROJECT_ID }}
