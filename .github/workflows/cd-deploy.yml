@@ -132,13 +132,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup GCP credentials
+      - name: Decode and setup GCP credentials
         run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "Error: GCP_SA_KEY secret is empty"
-            exit 1
-          fi
-          
+          # Decode base64 secret to JSON file
           echo "${{ secrets.GCP_SA_KEY }}" | base64 -d > ${HOME}/gcp-key.json
           
           # Validate JSON
@@ -147,23 +143,26 @@ jobs:
             exit 1
           fi
           
-          export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcp-key.json
+          # Set environment variable for gcloud
           echo "GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcp-key.json" >> $GITHUB_ENV
-          
-          # Activate service account
-          gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
-          
-          # Set project
-          gcloud config set project ${{ env.GCP_PROJECT_ID }}
-          
-          # Verify authentication
-          echo "✅ Authenticated as:"
-          gcloud auth list
+          echo "✅ GCP credentials file created"
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Authenticate with service account
+        run: |
+          gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
+          gcloud config set project ${{ env.GCP_PROJECT_ID }}
+
+      - name: Verify authentication
+        run: |
+          echo "✅ Authenticated as:"
+          gcloud auth list
+          echo "✅ Current project:"
+          gcloud config get-value project
 
       - name: Install gke-gcloud-auth-plugin
         run: |
