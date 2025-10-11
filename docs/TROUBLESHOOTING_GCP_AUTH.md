@@ -3,8 +3,9 @@
 ## 🔴 Common Error: "You do not currently have an active account selected"
 
 ### Error Message:
+
 ```
-ERROR: (gcloud.container.clusters.get-credentials) 
+ERROR: (gcloud.container.clusters.get-credentials)
 You do not currently have an active account selected.
 Please run:
   $ gcloud auth login
@@ -15,6 +16,7 @@ Please run:
 ## 🎯 Root Cause
 
 **WRONG ORDER** of operations:
+
 ```yaml
 # ❌ WRONG - Activating before SDK is ready
 - name: Activate service account
@@ -25,7 +27,8 @@ Please run:
 # Result: SDK installation overrides authentication!
 ```
 
-**The Problem:** 
+**The Problem:**
+
 1. You activate service account first
 2. Then setup-gcloud action installs/updates SDK
 3. SDK reset clears your authentication
@@ -36,22 +39,24 @@ Please run:
 ## ✅ Solution: Correct Order
 
 ### Step 1: Decode Credentials (if base64-encoded)
+
 ```yaml
 - name: Decode and setup GCP credentials
   run: |
     echo "${{ secrets.GCP_SA_KEY }}" | base64 -d > ${HOME}/gcp-key.json
-    
+
     # Validate JSON
     if ! cat ${HOME}/gcp-key.json | jq empty 2>/dev/null; then
       echo "Error: Invalid JSON"
       exit 1
     fi
-    
+
     # Set environment variable
     echo "GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcp-key.json" >> $GITHUB_ENV
 ```
 
 ### Step 2: Setup Cloud SDK FIRST
+
 ```yaml
 - name: Set up Cloud SDK
   uses: google-github-actions/setup-gcloud@v2
@@ -60,14 +65,25 @@ Please run:
 ```
 
 ### Step 3: Activate Service Account AFTER SDK is ready
+
 ```yaml
 - name: Authenticate with service account
   run: |
+    # Activate service account (this automatically sets it as active!)
     gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
+    
+    # Set project explicitly
     gcloud config set project ${{ env.GCP_PROJECT_ID }}
+    
+    # Optional: Verify immediately
+    echo "Active account: $(gcloud config get-value account)"
+    echo "Project: $(gcloud config get-value project)"
 ```
 
+**Important:** `gcloud auth activate-service-account` **automatically** sets the account as active. You don't need to manually extract email and set account!
+
 ### Step 4: Verify Authentication
+
 ```yaml
 - name: Verify authentication
   run: |
@@ -83,7 +99,7 @@ Please run:
 deploy-to-gke:
   name: Deploy to GKE
   runs-on: ubuntu-latest
-  
+
   steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -127,6 +143,7 @@ deploy-to-gke:
 ## 🧪 How to Test
 
 ### Test 1: Verify Authentication
+
 ```bash
 # After "Authenticate with service account" step
 gcloud auth list
@@ -137,6 +154,7 @@ gcloud config get-value project
 ```
 
 ### Test 2: Test GKE Access
+
 ```bash
 # This should work without errors
 gcloud container clusters list
@@ -145,6 +163,7 @@ gcloud container clusters get-credentials your-cluster \
 ```
 
 ### Test 3: Test kubectl
+
 ```bash
 kubectl get nodes
 kubectl get namespaces
@@ -155,10 +174,30 @@ kubectl get namespaces
 
 ## 🐛 Other Common Issues
 
-### Issue 1: "Invalid JSON in GCP service account key"
+### Issue 1: "jq: command not found" or "python parsing error"
+**Cause:** Trying to extract service account email from JSON file
+
+**Wrong approach:**
+```bash
+# ❌ Don't do this - jq not available in runner
+ACCOUNT_EMAIL=$(jq -r .client_email < ${HOME}/gcp-key.json)
+```
+
+**Correct approach:**
+```bash
+# ✅ gcloud automatically sets account when activating
+gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
+
+# ✅ Get account from gcloud config
+ACCOUNT=$(gcloud config get-value account)
+```
+
+### Issue 2: "Invalid JSON in GCP service account key"
+
 **Cause:** Secret is not proper base64 or JSON format
 
 **Solution:**
+
 ```bash
 # Re-encode your service account key
 cat key.json | base64 -w 0
@@ -168,9 +207,11 @@ cat key.json | base64 -w 0
 ```
 
 ### Issue 2: "Permission denied" when accessing GKE
+
 **Cause:** Service account lacks required IAM roles
 
 **Solution:**
+
 ```bash
 # Grant necessary roles
 gcloud projects add-iam-policy-binding PROJECT_ID \
@@ -183,9 +224,11 @@ gcloud projects add-iam-policy-binding PROJECT_ID \
 ```
 
 ### Issue 3: "gke-gcloud-auth-plugin not found"
+
 **Cause:** Missing authentication plugin for GKE
 
 **Solution:**
+
 ```yaml
 - name: Install gke-gcloud-auth-plugin
   run: |
@@ -235,5 +278,5 @@ When deployment fails with authentication errors:
 
 ---
 
-*Last Updated: October 11, 2025*  
-*Tested with: google-github-actions/setup-gcloud@v2*
+_Last Updated: October 11, 2025_  
+_Tested with: google-github-actions/setup-gcloud@v2_
