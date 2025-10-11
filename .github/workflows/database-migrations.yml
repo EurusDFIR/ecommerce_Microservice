@@ -35,7 +35,20 @@ jobs:
     steps:
       - name: Setup GCP credentials
         run: |
+          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+            echo "❌ Error: GCP_SA_KEY secret is not set!"
+            exit 1
+          fi
+          
+          echo "Decoding GCP service account key..."
           echo "${{ secrets.GCP_SA_KEY }}" | base64 -d > ${HOME}/gcp-key.json
+          
+          if [ ! -s ${HOME}/gcp-key.json ]; then
+            echo "❌ Error: Failed to decode GCP_SA_KEY or result is empty!"
+            exit 1
+          fi
+          
+          echo "✅ GCP credentials decoded successfully"
           echo "GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcp-key.json" >> $GITHUB_ENV
 
       - name: Set up Cloud SDK
