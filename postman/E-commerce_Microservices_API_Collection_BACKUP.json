@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "ecommerce-microservices-001",
-		"name": "E-commerce Microservices - Complete API Collection (FIXED)",
-		"description": "Complete API testing collection for E-commerce Microservices on GKE\n\n**Base URL:** http://34.143.235.74\n\n**Services:**\n- Users Service (Port 80) - Authentication & User Management\n- Products Service (Port 80) - Product Catalog\n- Orders Service (Port 80) - Cart & Order Management\n\n**Authentication:** JWT Bearer Token\n\n**Author:** DevOps Team\n**Last Updated:** October 11, 2025\n**Version:** 2.1 (FIXED)",
+		"name": "E-commerce Microservices - Complete API Collection",
+		"description": "Complete API testing collection for E-commerce Microservices on GKE\n\n**Base URL:** http://34.143.235.74\n\n**Services:**\n- Users Service (Port 80) - Authentication & User Management\n- Products Service (Port 80) - Product Catalog\n- Orders Service (Port 80) - Cart & Order Management\n\n**Authentication:** JWT Bearer Token\n\n**Author:** DevOps Team\n**Last Updated:** October 11, 2025\n**Version:** 2.0",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -23,7 +23,7 @@
 									"pm.test(\"Response has status\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('status');",
-									"    pm.expect(jsonData.status).to.be.oneOf(['OK', 'healthy']);",
+									"    pm.expect(jsonData.status).to.eql('healthy');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -59,8 +59,6 @@
 									"",
 									"pm.test(\"Response has token and user\", function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('success');",
-									"    pm.expect(jsonData.success).to.be.true;",
 									"    pm.expect(jsonData).to.have.property('data');",
 									"    pm.expect(jsonData.data).to.have.property('token');",
 									"    pm.expect(jsonData.data).to.have.property('user');",
@@ -101,15 +99,15 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"{{UNIQUE_EMAIL}}\",\n  \"password\": \"SecurePassword123!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\"\n}"
+							"raw": "{\n  \"email\": \"{{UNIQUE_EMAIL}}\",\n  \"password\": \"SecurePassword123!\",\n  \"full_name\": \"Test User\",\n  \"role\": \"customer\"\n}"
 						},
 						"url": {
-							"raw": "{{BASE_URL}}/auth/register",
+							"raw": "{{BASE_URL}}/users/register",
 							"host": [
 								"{{BASE_URL}}"
 							],
 							"path": [
-								"auth",
+								"users",
 								"register"
 							]
 						},
@@ -130,8 +128,6 @@
 									"",
 									"pm.test(\"Response has token\", function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('success');",
-									"    pm.expect(jsonData.success).to.be.true;",
 									"    pm.expect(jsonData).to.have.property('data');",
 									"    pm.expect(jsonData.data).to.have.property('token');",
 									"    ",
@@ -156,12 +152,12 @@
 							"raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"customer123\"\n}"
 						},
 						"url": {
-							"raw": "{{BASE_URL}}/auth/login",
+							"raw": "{{BASE_URL}}/users/login",
 							"host": [
 								"{{BASE_URL}}"
 							],
 							"path": [
-								"auth",
+								"users",
 								"login"
 							]
 						},
@@ -193,25 +189,22 @@
 						}
 					],
 					"request": {
-						"method": "POST",
+						"method": "GET",
 						"header": [
 							{
-								"key": "Content-Type",
-								"value": "application/json"
+								"key": "Authorization",
+								"value": "Bearer {{AUTH_TOKEN}}",
+								"type": "text"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"token\": \"{{AUTH_TOKEN}}\"\n}"
-						},
 						"url": {
-							"raw": "{{BASE_URL}}/auth/verify",
+							"raw": "{{BASE_URL}}/users/verify-token",
 							"host": [
 								"{{BASE_URL}}"
 							],
 							"path": [
-								"auth",
-								"verify"
+								"users",
+								"verify-token"
 							]
 						},
 						"description": "Verify JWT token validity. Used by other services for authentication."
@@ -233,9 +226,7 @@
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('id');",
 									"    pm.expect(jsonData).to.have.property('email');",
-									"    pm.expect(jsonData).to.satisfy(function(data) {",
-									"        return data.firstName || data.first_name || data.fullName || data.full_name;",
-									"    });",
+									"    pm.expect(jsonData).to.have.property('full_name');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -252,13 +243,13 @@
 							}
 						],
 						"url": {
-							"raw": "{{BASE_URL}}/users/me",
+							"raw": "{{BASE_URL}}/users/profile",
 							"host": [
 								"{{BASE_URL}}"
 							],
 							"path": [
 								"users",
-								"me"
+								"profile"
 							]
 						},
 						"description": "Get authenticated user's profile information"
@@ -284,7 +275,7 @@
 									"",
 									"pm.test(\"Service is healthy\", function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.status).to.be.oneOf(['OK', 'healthy']);",
+									"    pm.expect(jsonData.status).to.eql('healthy');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -369,7 +360,6 @@
 									"",
 									"pm.test(\"Products are from correct category\", function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.be.an('array');",
 									"    if (jsonData.length > 0) {",
 									"        pm.expect(jsonData[0]).to.have.property('category_name');",
 									"    }",
@@ -584,7 +574,7 @@
 									"",
 									"pm.test(\"Service is healthy\", function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.status).to.be.oneOf(['OK', 'healthy']);",
+									"    pm.expect(jsonData.status).to.eql('healthy');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -1037,15 +1027,15 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"{{TEST_EMAIL}}\",\n  \"password\": \"TestPassword123!\",\n  \"firstName\": \"E2E\",\n  \"lastName\": \"Test\"\n}"
+							"raw": "{\n  \"email\": \"{{TEST_EMAIL}}\",\n  \"password\": \"TestPassword123!\",\n  \"full_name\": \"E2E Test User\",\n  \"role\": \"customer\"\n}"
 						},
 						"url": {
-							"raw": "{{BASE_URL}}/auth/register",
+							"raw": "{{BASE_URL}}/users/register",
 							"host": [
 								"{{BASE_URL}}"
 							],
 							"path": [
-								"auth",
+								"users",
 								"register"
 							]
 						}
