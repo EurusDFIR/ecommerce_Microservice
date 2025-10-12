@@ -3,6 +3,7 @@
 [![CI - Pull Request](https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/ci-pull-request.yml/badge.svg)](https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/ci-pull-request.yml)
 [![CD - Deploy to GKE](https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/cd-deploy.yml/badge.svg)](https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/cd-deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Contributors](https://img.shields.io/badge/Contributors-6-blue.svg)](CONTRIBUTORS.md)
 
 A scalable e-commerce platform built with microservices architecture on Google Cloud Platform (GCP). This project demonstrates modern cloud-native development practices with automated CI/CD, container orchestration, and multi-database support.
 
