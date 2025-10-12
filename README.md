@@ -3,6 +3,7 @@
 [![CI - Pull Request](https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/ci-pull-request.yml/badge.svg)](https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/ci-pull-request.yml)
 [![CD - Deploy to GKE](https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/cd-deploy.yml/badge.svg)](https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/cd-deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Contributors](https://img.shields.io/badge/Contributors-6-blue.svg)](CONTRIBUTORS.md)
 
 A scalable e-commerce platform built with microservices architecture on Google Cloud Platform (GCP). This project demonstrates modern cloud-native development practices with automated CI/CD, container orchestration, and multi-database support.
 
@@ -53,28 +54,13 @@ curl http://34.143.235.74/products
 
 ### Infrastructure Diagram
 
-```
-┌─────────────────┐    ┌─────────────────┐
-│   API Gateway   │    │  Cloud Load    │
-│                 │    │   Balancer     │
-└─────────┬───────┘    └─────────┬───────┘
-          │                      │
-          ▼                      ▼
-┌─────────────────┐    ┌─────────────────┐
-│  Users Service  │    │ Products Service│
-│                 │    │                 │
-│   PostgreSQL    │    │   PostgreSQL    │
-└─────────────────┘    └─────────────────┘
-          │
-          ▼
-┌─────────────────┐
-│ Orders Service  │
-│                 │
-│    Firestore    │
-└─────────────────┘
-```
+#### System Architecture Overview
 
-_For detailed architecture, see [docs/architecture.md](docs/architecture.md) and [docs/ARCHITECTURE_DIAGRAM.md](docs/ARCHITECTURE_DIAGRAM.md)_
+![E-commerce Architecture](docs/E_commerce_Architecture.png)
+
+#### CI/CD Pipeline Flow
+
+![CI/CD Flow](docs/ci_cd_flow.png)
 
 ## 🛠️ Technology Stack
 
@@ -88,6 +74,10 @@ _For detailed architecture, see [docs/architecture.md](docs/architecture.md) and
 
 - **Cloud SQL (PostgreSQL)** for relational data
 - **Firestore** for document-based data
+
+#### Database Architecture
+
+![Database Diagram](docs/database_diagram.png)
 
 ### Cloud Services
 
@@ -105,7 +95,11 @@ _For detailed architecture, see [docs/architecture.md](docs/architecture.md) and
 - **kubectl** for cluster management
 - **Docker Compose** for local development
 
-## 🚀 Quick Start
+## � Security Architecture
+
+![Security Architecture](docs/security_architecture.png)
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
@@ -160,6 +154,10 @@ curl http://34.143.235.74/categories
 ```
 
 ## 📚 API Documentation
+
+### Sequence Diagram
+
+![API Sequence Diagram](docs/sequency_diagram.png)
 
 ### Public Endpoints (LoadBalancer)
 
