@@ -54,28 +54,11 @@ curl http://34.143.235.74/products
 
 ### Infrastructure Diagram
 
-```
-┌─────────────────┐    ┌─────────────────┐
-│   API Gateway   │    │  Cloud Load    │
-│                 │    │   Balancer     │
-└─────────┬───────┘    └─────────┬───────┘
-          │                      │
-          ▼                      ▼
-┌─────────────────┐    ┌─────────────────┐
-│  Users Service  │    │ Products Service│
-│                 │    │                 │
-│   PostgreSQL    │    │   PostgreSQL    │
-└─────────────────┘    └─────────────────┘
-          │
-          ▼
-┌─────────────────┐
-│ Orders Service  │
-│                 │
-│    Firestore    │
-└─────────────────┘
-```
+#### System Architecture Overview
+![E-commerce Architecture](docs/E_commerce_Architecture.png)
 
-_For detailed architecture, see [docs/architecture.md](docs/architecture.md) and [docs/ARCHITECTURE_DIAGRAM.md](docs/ARCHITECTURE_DIAGRAM.md)_
+#### CI/CD Pipeline Flow
+![CI/CD Flow](docs/ci_cd_flow.png)
 
 ## 🛠️ Technology Stack
 
@@ -89,6 +72,9 @@ _For detailed architecture, see [docs/architecture.md](docs/architecture.md) and
 
 - **Cloud SQL (PostgreSQL)** for relational data
 - **Firestore** for document-based data
+
+#### Database Architecture
+![Database Diagram](docs/database_diagram.png)
 
 ### Cloud Services
 
@@ -106,7 +92,11 @@ _For detailed architecture, see [docs/architecture.md](docs/architecture.md) and
 - **kubectl** for cluster management
 - **Docker Compose** for local development
 
-## 🚀 Quick Start
+## � Security Architecture
+
+![Security Architecture](docs/security_architecture.png)
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
@@ -161,6 +151,9 @@ curl http://34.143.235.74/categories
 ```
 
 ## 📚 API Documentation
+
+### Sequence Diagram
+![API Sequence Diagram](docs/sequency_diagram.png)
 
 ### Public Endpoints (LoadBalancer)
 
