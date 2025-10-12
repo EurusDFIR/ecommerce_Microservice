@@ -1,189 +1,274 @@
-# E-Commerce Microservices trên Google Cloud Platform
+# E-Commerce Microservices
 
-![CI - Pull Request](https://github.com/YOUR_USERNAME/e-commerce-microservice/actions/workflows/ci-pull-request.yml/badge.svg)
-![CD - Deploy to GKE](https://github.com/YOUR_USERNAME/e-commerce-microservice/actions/workflows/cd-deploy.yml/badge.svg)
-![Database Migrations](https://github.com/YOUR_USERNAME/e-commerce-microservice/actions/workflows/database-migrations.yml/badge.svg)
+[![CI - Pull Request](https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/ci-pull-request.yml/badge.svg)](https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/ci-pull-request.yml)
+[![CD - Deploy to GKE](https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/cd-deploy.yml/badge.svg)](https://github.com/EurusDFIR/ecommerce_Microservice/actions/workflows/cd-deploy.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 🎉 Dự án đã LIVE!
+A scalable e-commerce platform built with microservices architecture on Google Cloud Platform (GCP). This project demonstrates modern cloud-native development practices with automated CI/CD, container orchestration, and multi-database support.
 
-**🌐 API URL:** http://34.143.235.74
+## 🚀 Live Demo
 
-**📱 Test ngay:**
+**🌐 Public API Endpoint:** http://34.143.235.74
+
+**📱 Quick Test:**
 
 ```bash
+curl http://34.143.235.74/health
 curl http://34.143.235.74/products
-curl http://34.143.235.74/categories
 ```
 
-**CI/CD Status:** ✅ Automated with GitHub Actions
+**Status:** 🟢 **DEPLOYED & RUNNING** on Google Kubernetes Engine (GKE)
 
-## Mô tả dự án
+## 📋 Table of Contents
 
-Đây là một hệ thống E-commerce được xây dựng theo kiến trúc Microservices trên Google Cloud Platform (GCP). Dự án này thực hiện triển khai một nền tảng thương mại điện tử với các dịch vụ độc lập, có khả năng mở rộng và bảo trì cao.
+- [Features](#features)
+- [Architecture](#architecture)
+- [Technology Stack](#technology-stack)
+- [Quick Start](#quick-start)
+- [API Documentation](#api-documentation)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+- [Authors](#authors)
 
-**Status:** 🟢 **DEPLOYED & RUNNING** on GKE
+## ✨ Features
 
-## Kiến trúc hệ thống
+- **Microservices Architecture**: Independently deployable services
+- **Multi-Database Support**: PostgreSQL for relational data, Firestore for NoSQL
+- **Automated CI/CD**: GitHub Actions with comprehensive testing
+- **Container Orchestration**: Kubernetes with auto-scaling and self-healing
+- **API Gateway**: Centralized API management
+- **Monitoring & Logging**: Cloud-native observability
+- **Security**: JWT authentication and secure communication
 
-### Các Microservices chính:
+## 🏗️ Architecture
 
-1. **Users Service** - Quản lý người dùng (đăng ký, đăng nhập, hồ sơ)
-2. **Products Service** - Quản lý sản phẩm (danh sách, chi tiết, tồn kho)
-3. **Orders Service** - Xử lý đơn hàng (giỏ hàng, đặt hàng, lịch sử)
-4. **Payments Service** - Xử lý thanh toán
+### Core Services
 
-### Công nghệ sử dụng:
+| Service              | Technology      | Database   | Description                     |
+| -------------------- | --------------- | ---------- | ------------------------------- |
+| **Users Service**    | Node.js/Express | PostgreSQL | User management, authentication |
+| **Products Service** | Node.js/Express | PostgreSQL | Product catalog, inventory      |
+| **Orders Service**   | Node.js/Express | Firestore  | Shopping cart, order processing |
 
-- **Backend**: Node.js + Express
-- **Database**: Cloud SQL (PostgreSQL), Firestore
- **Backend**: Node.js + Express
-- **Database**: Cloud SQL (PostgreSQL), Firestore
-- **Container**: Docker
-- **Orchestration**: Google Kubernetes Engine (GKE)
-- **CI/CD**: Cloud Build
-- **API Gateway**: Cloud Endpoints
-- **Storage**: Google Cloud Storage
-- **Monitoring**: Cloud Monitoring & Logging
-
-## Cấu trúc thư mục
+### Infrastructure Diagram
 
 ```
-e_commerce_microservice/
-├── docs/                     # Tài liệu thiết kế
-├── services/                 # Các microservices
-│   ├── users-service/
-│   ├── products-service/
-│   ├── orders-service/
-│   └── payments-service/
-├── infrastructure/          # Cấu hình Kubernetes & Terraform
-├── scripts/                 # Scripts tiện ích
-└── README.md
+┌─────────────────┐    ┌─────────────────┐
+│   API Gateway   │    │  Cloud Load    │
+│                 │    │   Balancer     │
+└─────────┬───────┘    └─────────┬───────┘
+          │                      │
+          ▼                      ▼
+┌─────────────────┐    ┌─────────────────┐
+│  Users Service  │    │ Products Service│
+│                 │    │                 │
+│   PostgreSQL    │    │   PostgreSQL    │
+└─────────────────┘    └─────────────────┘
+          │
+          ▼
+┌─────────────────┐
+│ Orders Service  │
+│                 │
+│    Firestore    │
+└─────────────────┘
 ```
 
-## Yêu cầu hệ thống
+_For detailed architecture, see [docs/architecture.md](docs/architecture.md) and [docs/ARCHITECTURE_DIAGRAM.md](docs/ARCHITECTURE_DIAGRAM.md)_
 
-- Google Cloud SDK (gcloud CLI)
+## 🛠️ Technology Stack
+
+### Backend & Runtime
+
+- **Node.js** 18+ with Express.js
+- **Docker** for containerization
+- **Kubernetes** (GKE) for orchestration
+
+### Databases
+
+- **Cloud SQL (PostgreSQL)** for relational data
+- **Firestore** for document-based data
+
+### Cloud Services
+
+- **Google Cloud Platform**
+  - GKE (Kubernetes Engine)
+  - Cloud SQL
+  - Firestore
+  - Cloud Build
+  - Artifact Registry
+  - Cloud Monitoring
+
+### DevOps & CI/CD
+
+- **GitHub Actions** for automation
+- **kubectl** for cluster management
+- **Docker Compose** for local development
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Google Cloud SDK (`gcloud` CLI)
 - Docker Desktop
-- kubectl
+- `kubectl` configured for GKE
 - Node.js 18+
 - Git
 
-## Bắt đầu nhanh
-
-### 1. Cấu hình môi trường
+### 1. Clone the Repository
 
 ```bash
-# Đăng nhập Google Cloud
+git clone https://github.com/EurusDFIR/ecommerce_Microservice.git
+cd ecommerce_Microservice
+```
+
+### 2. Configure Google Cloud
+
+```bash
+# Authenticate
 gcloud auth login
 
-# Tạo dự án mới
-gcloud projects create my-ecommerce-project --name="E-commerce Microservices"
+# Set project
+gcloud config set project ecommerce-micro-0037
 
-# Thiết lập dự án làm việc
-gcloud config set project my-ecommerce-project
+# Configure kubectl for GKE cluster
+gcloud container clusters get-credentials my-ecommerce-cluster --region asia-southeast1
 ```
 
-### 2. Kích hoạt APIs cần thiết
+### 3. Deploy to GKE
 
 ```bash
-gcloud services enable container.googleapis.com
-gcloud services enable artifactregistry.googleapis.com
-gcloud services enable cloudbuild.googleapis.com
-gcloud services enable sql-component.googleapis.com
+# Deploy all services
+kubectl apply -f infrastructure/k8s/
+
+# Check deployment status
+kubectl get pods -n ecommerce
+kubectl get services -n ecommerce
 ```
 
-### 3. Triển khai
-
-Chi tiết xem trong file `TODO.md`
-
-## CI/CD Pipeline
-
-✅ **Automated CI/CD with GitHub Actions**
-
-Our project uses GitHub Actions for continuous integration and deployment:
-
-- 🧪 **PR Validation** - Automated testing on pull requests
-- 🚀 **Auto Deploy** - Push to main triggers deployment to GKE
-- 🗄️ **Database Migrations** - Safe, automated schema updates
-- 🔥 **Hotfix Workflow** - Emergency deployment with auto-rollback
-
-**📚 Documentation:**
-
-- [CI/CD Pipeline Guide](docs/CI_CD_PIPELINE.md)
-- [GitHub Actions Setup](docs/GITHUB_ACTIONS_SETUP.md)
-
-**Workflow Status:**
-
-- CI checks run on every PR
-- Deployment to GKE on merge to main
-- E2E tests validate deployments
-- All workflows visible in [Actions tab](../../actions)
-
-## Tài liệu
-
-### Deployment & Operations
-
-- [Database Testing Status](docs/DATABASE_TESTING_STATUS.md) - E2E test results
-- [Database Deployment Success](docs/DATABASE_DEPLOYMENT_SUCCESS.md) - Migration status
-- [CI/CD Pipeline Documentation](docs/CI_CD_PIPELINE.md) - **⭐ NEW**
-- [GitHub Actions Setup Guide](docs/GITHUB_ACTIONS_SETUP.md) - **⭐ NEW**
-
-### Architecture & API
-
-- [TODO List](TODO.md) - Development roadmap
-- [Thiết kế kiến trúc](docs/architecture.md)
-- [API Documentation](docs/api.md)
-- [Deployment Guide](docs/deployment.md)
-
-## Tác giả
-
-- Tên: [Tên của bạn]
-
-  - Lê Văn Hoàng
-
-  - Nguyễn Tuấn Việt
-
-  - Diệp Đại Lê Hoài
-
-  - Nguyễn Ngọc Hòa
-
-  - Đoàn Thanh Phúc
- 
-  - Ghi tiếp tên vào đây
-
-- Email: [Email của bạn]
-- GitHub: [GitHub username]
-
-## License
-
-MIT License
-## Testing CI Pipeline
-
-The CI pipeline is automated using GitHub Actions and runs on every pull request and push to the main branch. It performs the following tasks:
-
-- Lints and builds all microservices.
-- Runs unit and integration tests.
-- Checks code quality and formatting.
-
-**How to test the CI pipeline:**
-
-1. **Create a Pull Request:** Push your changes to a new branch and open a pull request. The CI pipeline will automatically run and you can view the results in the "Checks" tab of your PR.
-2. **Manual Trigger:** You can manually trigger the workflow from the [Actions tab](https://github.com/YOUR_USERNAME/e-commerce-microservice/actions) in GitHub.
-3. **Check Status:** Look for the CI badge at the top of this README or visit the [CI workflow logs](https://github.com/YOUR_USERNAME/e-commerce-microservice/actions/workflows/ci-pull-request.yml).
-
-**Example:**
+### 4. Test the APIs
 
 ```bash
-# After pushing your branch, open a PR and check the status:
-# (No local command needed, all runs on GitHub Actions)
-## CI/CD Pipeline Status
+# Health check
+curl http://34.143.235.74/health
 
-✅ **Priority #2 - COMPLETED**
+# Get products
+curl http://34.143.235.74/products
 
-All GitHub Actions workflows are configured and tested:
-- CI workflow triggers on all pull requests
-- All 7 status checks must pass before merging
-- Branch protection rules are active on main branch
+# Get categories
+curl http://34.143.235.74/categories
+```
 
-Last updated: 2025-10-11 15:06:50
-\n## Demo CI Workflow - Sat, Oct 11, 2025  8:05:42 PM
+## 📚 API Documentation
+
+### Public Endpoints (LoadBalancer)
+
+| Method | Endpoint            | Description             |
+| ------ | ------------------- | ----------------------- |
+| GET    | `/health`           | Service health check    |
+| GET    | `/products`         | List all products       |
+| GET    | `/products/{id}`    | Get product details     |
+| GET    | `/categories`       | List product categories |
+| GET    | `/search?q={query}` | Search products         |
+
+### Internal Endpoints (ClusterIP)
+
+| Service | Endpoint         | Description              |
+| ------- | ---------------- | ------------------------ |
+| Users   | `/auth/register` | User registration        |
+| Users   | `/auth/login`    | User authentication      |
+| Users   | `/users/me`      | Get user profile         |
+| Orders  | `/cart`          | Shopping cart operations |
+| Orders  | `/orders`        | Order management         |
+
+_Note: Users and Orders services are internal only. For full API testing, use Postman collection in `postman/` directory._
+
+## 💻 Development
+
+### Local Development Setup
+
+```bash
+# Install dependencies for all services
+cd services/users-service && npm install
+cd ../products-service && npm install
+cd ../orders-service && npm install
+
+# Start local databases
+docker-compose up -d postgres firestore-emulator
+
+# Run services locally
+npm run dev  # in each service directory
+```
+
+### Project Structure
+
+```
+ecommerce_Microservice/
+├── docs/                     # Documentation
+│   ├── architecture.md       # Architecture details
+│   └── ARCHITECTURE_DIAGRAM.md # Visual diagrams
+├── services/                 # Microservices
+│   ├── users-service/        # User management
+│   ├── products-service/     # Product catalog
+│   └── orders-service/       # Order processing
+├── infrastructure/           # Infrastructure as Code
+│   └── k8s/                  # Kubernetes manifests
+├── postman/                  # API testing collections
+├── scripts/                  # Utility scripts
+└── README.md
+```
+
+### Testing
+
+```bash
+# Run unit tests
+npm test
+
+# Run integration tests
+npm run test:integration
+
+# Run E2E tests
+npm run test:e2e
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTORS.md) for details.
+
+### Development Workflow
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Code Standards
+
+- Follow ESLint configuration
+- Write tests for new features
+- Update documentation as needed
+- Ensure all CI checks pass
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 👥 Authors
+
+This project was developed by:
+
+- **Lê Văn Hoàng**
+- **Nguyễn Tuấn Việt**
+- **Diệp Đại Lê Hoài**
+- **Nguyễn Ngọc Hòa**
+- **Đoàn Thanh Phúc**
+- **Nguyễn Văn Linh**
+
+_For detailed contributor information, see [CONTRIBUTORS.md](CONTRIBUTORS.md)_
+
+---
+
+**Built with ❤️ on Google Cloud Platform**
+
+_Last updated: October 12, 2025_
