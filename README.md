@@ -55,9 +55,11 @@ curl http://34.143.235.74/products
 ### Infrastructure Diagram
 
 #### System Architecture Overview
+
 ![E-commerce Architecture](docs/E_commerce_Architecture.png)
 
 #### CI/CD Pipeline Flow
+
 ![CI/CD Flow](docs/ci_cd_flow.png)
 
 ## 🛠️ Technology Stack
@@ -74,6 +76,7 @@ curl http://34.143.235.74/products
 - **Firestore** for document-based data
 
 #### Database Architecture
+
 ![Database Diagram](docs/database_diagram.png)
 
 ### Cloud Services
@@ -153,6 +156,7 @@ curl http://34.143.235.74/categories
 ## 📚 API Documentation
 
 ### Sequence Diagram
+
 ![API Sequence Diagram](docs/sequency_diagram.png)
 
 ### Public Endpoints (LoadBalancer)
